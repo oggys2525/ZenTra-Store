@@ -14,30 +14,45 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SQLITE_FALLBACK_URL = os.getenv("SQLITE_FALLBACK_URL", "sqlite:///./zentra_store.db")
 
+# Standardize postgres scheme for SQLAlchemy 1.4+ (Render uses postgres:// by default)
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 Base = declarative_base()
 
 # Attempt to create database engine
 engine = None
 is_sqlite = False
 
-try:
-    logger.info("Attempting to connect to SQL Server...")
-    # SQL Server connection
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,
-        pool_recycle=1800,
-        # SQL Server PyODBC connection options
-    )
-    # Test connection
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
-    logger.info("Successfully connected to SQL Server!")
-except Exception as e:
-    logger.warning(
-        f"SQL Server connection failed: {e}\n"
-        f"Falling back to SQLite database at {SQLITE_FALLBACK_URL} for development/testing..."
-    )
+if DATABASE_URL:
+    db_type = "Database"
+    if "postgresql" in DATABASE_URL:
+        db_type = "PostgreSQL"
+    elif "mssql" in DATABASE_URL:
+        db_type = "SQL Server"
+        
+    try:
+        logger.info(f"Attempting to connect to {db_type}...")
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+        )
+        # Test connection
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info(f"Successfully connected to {db_type}!")
+    except Exception as e:
+        # Avoid logging the connection string with passwords
+        masked_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "configured DATABASE_URL"
+        logger.warning(
+            f"{db_type} connection to '{masked_url}' failed: {e}\n"
+            f"Falling back to SQLite database..."
+        )
+        engine = None
+
+if engine is None:
+    logger.info(f"Using SQLite fallback database at {SQLITE_FALLBACK_URL}...")
     is_sqlite = True
     # SQLite connection
     engine = create_engine(
