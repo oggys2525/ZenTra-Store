@@ -1,0 +1,35 @@
+services:
+  # Backend API Web Service
+  - type: web
+    name: zentra-store-backend
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: SQLITE_FALLBACK_URL
+        value: sqlite:///./zentra_store.db
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: MAX_UPLOAD_SIZE
+        value: "5242880"
+
+  # Frontend Static React Site
+  - type: web
+    name: zentra-store-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    publishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: zentra-store-backend
+          property: url
