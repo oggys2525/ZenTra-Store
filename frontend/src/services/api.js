@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Set base API URL dynamically (default to production on Render)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zentra-store.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'https://zentra-store.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
