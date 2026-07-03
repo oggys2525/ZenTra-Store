@@ -48,6 +48,14 @@ app.include_router(orders.router)
 app.include_router(users.router)
 app.include_router(settings.router)
 
+@app.get("/")
+def read_root():
+    return {
+        "message": "ZenTra Store API is running successfully!",
+        "status": "online",
+        "docs_url": "/docs"
+    }
+
 # ========================================================
 # Database Initialization & Seeding on Startup
 # ========================================================
