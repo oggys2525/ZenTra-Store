@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://zentra-store.onrender.com/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://zentra-store.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/ws/:path*",
+      "destination": "wss://zentra-store.onrender.com/ws/:path*"
+    },
+    {
+      "source": "/((?!api|uploads|ws).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
