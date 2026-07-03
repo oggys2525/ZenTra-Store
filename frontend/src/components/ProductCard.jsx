@@ -38,7 +38,7 @@ const ProductCard = ({ product }) => {
           src={getImageUrl(product.Image)}
           alt={product.ProductName}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+          onError={(e) => { e.target.src = '/logo.png'; }}
         />
         
         {/* Discount Badge */}

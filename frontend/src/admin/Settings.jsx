@@ -195,7 +195,7 @@ const AdminSettings = () => {
                 src={getImageUrl(logoPath)}
                 alt="Logo Preview"
                 className="w-20 h-20 rounded-full object-cover border border-slate-200"
-                onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+                onError={(e) => { e.target.src = '/logo.png'; }}
               />
             )}
             

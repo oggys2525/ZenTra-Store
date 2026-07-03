@@ -36,7 +36,7 @@ const Dashboard = () => {
     initDashboard();
 
     // Setup WebSocket for Real-time alerts
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zentra-store.onrender.com';
     const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/ws/notifications';
     
     const connectWebSocket = () => {

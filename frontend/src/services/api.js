@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Set base API URL dynamically (default to localhost:8000)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Set base API URL dynamically (default to production on Render)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://zentra-store.onrender.com';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -191,7 +191,7 @@ export const dashboardService = {
 };
 
 export const getImageUrl = (imagePath) => {
-  if (!imagePath) return '/src/assets/logo.png'; // Fallback
+  if (!imagePath) return '/logo.png'; // Fallback
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
   return `${API_BASE_URL}${imagePath}`;
 };

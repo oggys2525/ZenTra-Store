@@ -37,6 +37,9 @@ app.add_middleware(
 
 # Ensure uploads directory exists and mount it
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+if not os.path.isabs(UPLOAD_DIR):
+    backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    UPLOAD_DIR = os.path.abspath(os.path.join(backend_root, UPLOAD_DIR))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 

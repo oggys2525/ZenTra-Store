@@ -48,10 +48,10 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <img 
-                src={storeSettings ? getImageUrl(storeSettings.Logo) : '/src/assets/logo.png'} 
+                src={storeSettings ? getImageUrl(storeSettings.Logo) : '/logo.png'} 
                 alt="Logo" 
                 className="h-9 w-9 rounded-full object-cover border border-amber-500/50"
-                onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+                onError={(e) => { e.target.src = '/logo.png'; }}
               />
               <span className="font-bold text-xl tracking-wide bg-gradient-to-r from-blue-900 via-indigo-950 to-amber-700 bg-clip-text text-transparent font-khmer">
                 {storeSettings ? storeSettings.StoreName : 'ZenTra Store'}

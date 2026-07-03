@@ -215,7 +215,7 @@ const AdminProducts = () => {
                         src={getImageUrl(prod.Image)}
                         alt={prod.ProductName}
                         className="w-10 h-12 rounded object-cover border border-slate-200"
-                        onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+                        onError={(e) => { e.target.src = '/logo.png'; }}
                       />
                     </td>
                     <td className="py-3.5 px-6 font-semibold max-w-[200px] truncate" title={prod.ProductName}>
@@ -421,7 +421,7 @@ const AdminProducts = () => {
                       src={getImageUrl(imagePath)}
                       alt="Preview"
                       className="w-20 h-24 object-cover border border-slate-200 rounded-xl"
-                      onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+                      onError={(e) => { e.target.src = '/logo.png'; }}
                     />
                   )}
                   

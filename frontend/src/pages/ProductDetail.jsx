@@ -110,7 +110,7 @@ const ProductDetail = () => {
             src={getImageUrl(product.Image)}
             alt={product.ProductName}
             className="w-full h-full object-cover"
-            onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+            onError={(e) => { e.target.src = '/logo.png'; }}
           />
           {hasDiscount && (
             <span className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">

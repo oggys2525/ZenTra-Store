@@ -55,7 +55,7 @@ const Cart = () => {
                     src={getImageUrl(item.Image)}
                     alt={item.ProductName}
                     className="w-full h-full object-cover"
-                    onError={(e) => { e.target.src = '/src/assets/logo.png'; }}
+                    onError={(e) => { e.target.src = '/logo.png'; }}
                   />
                 </Link>
 
