@@ -1,10 +1,18 @@
 import os
 import re
-import pyodbc
 import sys
+
+try:
+    import pyodbc
+except ImportError:
+    pyodbc = None
 
 def get_installed_drivers():
     """Returns a list of installed ODBC drivers that support SQL Server."""
+    if pyodbc is None:
+        print("ERROR: pyodbc module is not installed.")
+        print("Please install it with 'pip install pyodbc' to run local SQL Server initialization.")
+        sys.exit(1)
     all_drivers = pyodbc.drivers()
     sql_drivers = [d for d in all_drivers if 'sql server' in d.lower() or 'odbc driver' in d.lower()]
     return sql_drivers
