@@ -75,3 +75,65 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* ========================================================
+   Dark Mode Global Overrides
+   ======================================================== */
+.dark body {
+  background-color: #0f172a !important; /* bg-slate-900 */
+  color: #f8fafc !important; /* text-slate-50 */
+}
+
+.dark .glass-panel {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .glass-navbar {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .bg-white {
+  background-color: #1e293b !important; /* bg-slate-800 */
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-700 {
+  color: #cbd5e1 !important; /* text-slate-300 */
+}
+
+.dark .text-slate-800 {
+  color: #f8fafc !important; /* text-slate-50 */
+}
+
+.dark .border-slate-100, .dark .border-slate-200 {
+  border-color: #334155 !important; /* border-slate-700 */
+}
+
+.dark input, .dark textarea, .dark select {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.dark input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+

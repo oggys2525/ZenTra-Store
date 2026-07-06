@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert, ChevronDown, Sun, Moon, Monitor } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { authService, settingsService, categoryService, getImageUrl } from '../services/api';
 
@@ -15,10 +15,74 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  
+  const [theme, setTheme] = useState(localStorage.getItem('zentra_theme') || 'system');
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+
+  // Close theme dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (themeDropdownOpen && !e.target.closest('.theme-dropdown-container')) {
+        setThemeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [themeDropdownOpen]);
+
+  // Apply theme to document element
+  useEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = (currentTheme) => {
+      if (currentTheme === 'dark') {
+        root.classList.add('dark');
+      } else if (currentTheme === 'light') {
+        root.classList.remove('dark');
+      } else if (currentTheme === 'system') {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (systemPrefersDark) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      }
+    };
+
+    applyTheme(theme);
+    localStorage.setItem('zentra_theme', theme);
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemChange = (e) => {
+        if (e.matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      };
+      mediaQuery.addEventListener('change', handleSystemChange);
+      return () => mediaQuery.removeEventListener('change', handleSystemChange);
+    }
+  }, [theme]);
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    setThemeDropdownOpen(false);
+  };
 
   // Parse query params for active state checking
   const searchParams = new URLSearchParams(location.search);
   const categoryIdParam = searchParams.get('category_id');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -113,6 +177,16 @@ const Navbar = () => {
             </Link>
           </div>
 
+          {/* Live Date & Time - Centered */}
+          <div className="hidden md:flex flex-col items-center justify-center text-slate-500 font-khmer text-xs">
+            <span className="font-semibold text-slate-600">
+              {currentDateTime.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+            <span className="text-[10px] text-amber-600 mt-0.5 tracking-wider font-mono font-semibold">
+              {currentDateTime.toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
+          </div>
+
           {/* Cart & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Cart Icon */}
@@ -124,6 +198,59 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
+
+            {/* Theme Toggle (Desktop) */}
+            <div className="relative theme-dropdown-container">
+              <button 
+                onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-200 focus:outline-none cursor-pointer"
+                title="ប្តូរពណ៌ផ្ទៃ (Theme)"
+              >
+                {theme === 'light' && <Sun className="h-5 w-5 text-amber-500 animate-spin-slow" />}
+                {theme === 'dark' && <Moon className="h-5 w-5 text-indigo-500" />}
+                {theme === 'system' && <Monitor className="h-5 w-5 text-slate-500" />}
+              </button>
+
+              {themeDropdownOpen && (
+                <div className="absolute right-0 mt-1.5 w-32 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-100 dark:border-slate-700/80 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex flex-col space-y-0.5">
+                    <button
+                      onClick={() => handleThemeChange('light')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Sun className="h-3.5 w-3.5" />
+                      <span>ពន្លឺ</span>
+                    </button>
+                    <button
+                      onClick={() => handleThemeChange('dark')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'dark'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Moon className="h-3.5 w-3.5" />
+                      <span>ងងឹត</span>
+                    </button>
+                    <button
+                      onClick={() => handleThemeChange('system')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'system'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Monitor className="h-3.5 w-3.5" />
+                      <span>ប្រព័ន្ធ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Admin Panel Link */}
             {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Staff') && (
@@ -163,7 +290,60 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-3">
+          <div className="md:hidden flex items-center space-x-2">
+            {/* Theme Toggle (Mobile) */}
+            <div className="relative theme-dropdown-container">
+              <button 
+                onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-200 focus:outline-none cursor-pointer"
+                title="ប្តូរពណ៌ផ្ទៃ (Theme)"
+              >
+                {theme === 'light' && <Sun className="h-5 w-5 text-amber-500 animate-spin-slow" />}
+                {theme === 'dark' && <Moon className="h-5 w-5 text-indigo-500" />}
+                {theme === 'system' && <Monitor className="h-5 w-5 text-slate-500" />}
+              </button>
+
+              {themeDropdownOpen && (
+                <div className="absolute right-0 mt-1.5 w-32 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-100 dark:border-slate-700/80 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex flex-col space-y-0.5">
+                    <button
+                      onClick={() => handleThemeChange('light')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'light'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Sun className="h-3.5 w-3.5" />
+                      <span>ពន្លឺ</span>
+                    </button>
+                    <button
+                      onClick={() => handleThemeChange('dark')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'dark'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Moon className="h-3.5 w-3.5" />
+                      <span>ងងឹត</span>
+                    </button>
+                    <button
+                      onClick={() => handleThemeChange('system')}
+                      className={`flex items-center space-x-2 px-3 py-1.5 text-xs rounded-xl text-left font-khmer transition-all cursor-pointer ${
+                        theme === 'system'
+                          ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 font-bold'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-amber-600 dark:hover:text-amber-400'
+                      }`}
+                    >
+                      <Monitor className="h-3.5 w-3.5" />
+                      <span>ប្រព័ន្ធ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Link to="/cart" className="relative p-2 text-slate-600 hover:text-amber-600">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
