@@ -14,6 +14,15 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 SQLITE_FALLBACK_URL = os.getenv("SQLITE_FALLBACK_URL", "sqlite:///./zentra_store.db")
 
+# Convert relative SQLite fallback path to absolute path relative to workspace root
+if SQLITE_FALLBACK_URL.startswith("sqlite:///"):
+    # connection.py is in backend/app/database
+    db_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    workspace_root = os.path.dirname(db_dir)
+    db_filename = SQLITE_FALLBACK_URL.replace("sqlite:///./", "").replace("sqlite:///", "")
+    absolute_db_path = os.path.abspath(os.path.join(workspace_root, db_filename))
+    SQLITE_FALLBACK_URL = f"sqlite:///{absolute_db_path}"
+
 # Standardize postgres scheme for SQLAlchemy 1.4+ (Render uses postgres:// by default)
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
