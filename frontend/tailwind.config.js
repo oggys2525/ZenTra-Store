@@ -35,8 +35,8 @@ export default {
         }
       },
       fontFamily: {
-        khmer: ['Kantumruy Pro', 'Nokora', 'sans-serif'],
-        sans: ['Inter', 'Kantumruy Pro', 'sans-serif'],
+        khmer: ['Noto Sans Khmer', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans Khmer', 'sans-serif'],
       }
     },
   },
