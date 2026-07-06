@@ -161,7 +161,7 @@ const Navbar = () => {
   return (
     <nav className="glass-navbar shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+        <div className="relative flex justify-between h-16 items-center">
           {/* Logo & Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
@@ -171,14 +171,14 @@ const Navbar = () => {
                 className="h-9 w-9 rounded-full object-cover border border-amber-500/50"
                 onError={(e) => { e.target.src = '/logo.png'; }}
               />
-              <span className="font-bold text-xl tracking-wide bg-gradient-to-r from-blue-900 via-indigo-950 to-amber-700 bg-clip-text text-transparent font-khmer">
+              <span className="hidden sm:inline font-bold text-xl tracking-wide bg-gradient-to-r from-blue-900 via-indigo-950 to-amber-700 bg-clip-text text-transparent font-khmer">
                 {storeSettings ? storeSettings.StoreName : 'ZenTra Store'}
               </span>
             </Link>
           </div>
 
           {/* Live Date & Time - Centered */}
-          <div className="hidden md:flex flex-col items-center justify-center text-slate-500 font-khmer text-xs">
+          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 flex-col items-center justify-center text-slate-500 font-khmer text-xs">
             <span className="font-semibold text-slate-600">
               {currentDateTime.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
