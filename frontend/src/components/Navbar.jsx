@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert, ChevronDown } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { authService, settingsService, getImageUrl } from '../services/api';
+import { authService, settingsService, categoryService, getImageUrl } from '../services/api';
 
 const Navbar = () => {
   const { cartCount } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [storeSettings, setStoreSettings] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
+
+  // Parse query params for active state checking
+  const searchParams = new URLSearchParams(location.search);
+  const categoryIdParam = searchParams.get('category_id');
 
   useEffect(() => {
     const handleAuthChange = () => {
@@ -23,10 +31,23 @@ const Navbar = () => {
       .then(data => setStoreSettings(data))
       .catch(err => console.error(err));
 
+    // Fetch categories for dropdown
+    categoryService.getCategories()
+      .then(data => setCategories(data))
+      .catch(err => console.error(err));
+
     return () => {
       window.removeEventListener('auth_change', handleAuthChange);
     };
   }, []);
+
+
+  const searchParam = searchParams.get('search') || '';
+
+  // Sync search input with URL search param
+  useEffect(() => {
+    setSearchQuery(searchParam);
+  }, [searchParam]);
 
   const handleLogout = () => {
     authService.logout();
@@ -38,6 +59,39 @@ const Navbar = () => {
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
     }
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    
+    const newParams = new URLSearchParams(location.search);
+    if (val.trim()) {
+      newParams.set('search', val);
+    } else {
+      newParams.delete('search');
+    }
+
+    if (location.pathname !== '/products') {
+      navigate(`/products?${newParams.toString()}`);
+    } else {
+      navigate(`/products?${newParams.toString()}`, { replace: true });
+    }
+  };
+
+  const getTabClass = (path, matchType) => {
+    let active = false;
+    if (matchType === 'exact') {
+      active = location.pathname === path;
+    } else if (matchType === 'products') {
+      active = location.pathname === '/products' && !categoryIdParam;
+    } else if (matchType === 'categories') {
+      active = (location.pathname === '/products' && !!categoryIdParam) || categoriesDropdownOpen;
+    }
+
+    const baseClass = "px-4 py-1.5 rounded-full text-sm font-medium font-khmer transition-all duration-200";
+    return active
+      ? `${baseClass} text-amber-700 bg-amber-50 shadow-sm font-semibold`
+      : `${baseClass} text-slate-600 hover:text-amber-600 hover:bg-slate-50`;
   };
 
   return (
@@ -59,29 +113,8 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex space-x-8 items-center font-khmer text-sm font-medium text-slate-700">
-            <Link to="/" className="hover:text-amber-600 transition-colors duration-200">ទំព័រដើម</Link>
-            <Link to="/products" className="hover:text-amber-600 transition-colors duration-200">ផលិតផល</Link>
-            <Link to="/products" className="hover:text-amber-600 transition-colors duration-200">ប្រភេទ</Link>
-            <Link to="/about" className="hover:text-amber-600 transition-colors duration-200">អំពីយើង</Link>
-            <Link to="/contact" className="hover:text-amber-600 transition-colors duration-200 font-khmer">ទំនាក់ទំនង</Link>
-          </div>
-
-          {/* Search, Cart & User Actions */}
+          {/* Cart & User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Search Form */}
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <input
-                type="text"
-                placeholder="ស្វែងរកផលិតផល..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 xl:w-64 pl-9 pr-4 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 bg-slate-50 font-khmer"
-              />
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-            </form>
-
             {/* Cart Icon */}
             <Link to="/cart" className="relative p-2 text-slate-600 hover:text-amber-600 transition-colors duration-200">
               <ShoppingCart className="h-5 w-5" />
@@ -147,6 +180,96 @@ const Navbar = () => {
             </button>
           </div>
         </div>
+
+        {/* Navigation & Search Menu (Scrollable on mobile) */}
+        <div className="flex overflow-x-auto whitespace-nowrap scrollbar-none border-t border-slate-100/50 py-2.5 px-4 md:px-8 items-center">
+          <div className="flex items-center space-x-6 md:space-x-12 w-full">
+            {/* Search Form on the Left */}
+            <form onSubmit={handleSearchSubmit} className="relative w-44 md:w-56 shrink-0">
+              <input
+                type="text"
+                placeholder="ស្វែងរកផលិតផល..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-xs rounded-full border border-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 bg-slate-50 font-khmer transition-all duration-200"
+              />
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            </form>
+
+            {/* Navigation Links */}
+            <div className="flex space-x-5 md:space-x-8 items-center font-khmer text-xs md:text-sm font-medium text-slate-700">
+              <Link to="/" className={getTabClass('/', 'exact')}>ទំព័រដើម</Link>
+              <Link to="/products" className={getTabClass('/products', 'products')}>ផលិតផល</Link>
+              
+              {/* Desktop Only: Categories Dropdown Tab */}
+              <div 
+                className="hidden md:block relative"
+                onMouseEnter={() => setCategoriesDropdownOpen(true)}
+                onMouseLeave={() => setCategoriesDropdownOpen(false)}
+              >
+                <Link 
+                  to="/products"
+                  onClick={() => setCategoriesDropdownOpen(false)}
+                  className={`${getTabClass('/products?category_id', 'categories')} flex items-center space-x-1 cursor-pointer focus:outline-none`}
+                >
+                  <span>ប្រភេទ</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${categoriesDropdownOpen ? 'rotate-180' : ''}`} />
+                </Link>
+                
+                {/* Dropdown Menu */}
+                {categoriesDropdownOpen && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-52 rounded-2xl bg-white p-1.5 shadow-xl border border-slate-100/80 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="flex flex-col space-y-0.5">
+                      <Link
+                        to="/products"
+                        onClick={() => setCategoriesDropdownOpen(false)}
+                        className={`px-3 py-1.5 rounded-xl text-left transition-all ${
+                          !categoryIdParam
+                            ? 'bg-amber-50 text-amber-700 font-bold'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'
+                        }`}
+                      >
+                        ទាំងអស់
+                      </Link>
+                      {categories.map((cat) => (
+                        <Link
+                          key={cat.CategoryID}
+                          to={`/products?category_id=${cat.CategoryID}`}
+                          onClick={() => setCategoriesDropdownOpen(false)}
+                          className={`px-3 py-1.5 rounded-xl text-left transition-all ${
+                            categoryIdParam === cat.CategoryID.toString()
+                              ? 'bg-amber-50 text-amber-700 font-bold'
+                              : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'
+                          }`}
+                        >
+                          {cat.CategoryName}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Only: Inline scrollable categories */}
+              {categories.map((cat) => (
+                <Link
+                  key={cat.CategoryID}
+                  to={`/products?category_id=${cat.CategoryID}`}
+                  className={`md:hidden px-3.5 py-1.5 rounded-full text-xs font-khmer transition-all duration-200 ${
+                    categoryIdParam === cat.CategoryID.toString()
+                      ? 'text-amber-700 bg-amber-50 font-semibold shadow-sm'
+                      : 'text-slate-600 hover:text-amber-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {cat.CategoryName}
+                </Link>
+              ))}
+
+              <Link to="/about" className={getTabClass('/about', 'exact')}>អំពីយើង</Link>
+              <Link to="/contact" className={getTabClass('/contact', 'exact')}>ទំនាក់ទំនង</Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Drawer Menu */}
@@ -158,7 +281,7 @@ const Navbar = () => {
               type="text"
               placeholder="ស្វែងរកផលិតផល..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500"
             />
             <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />

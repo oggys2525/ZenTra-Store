@@ -33,7 +33,13 @@ def get_products(
     query = db.query(Product)
 
     if search:
-        query = query.filter(Product.ProductName.like(f"%{search}%"))
+        from sqlalchemy import or_
+        query = query.join(Category, Product.CategoryID == Category.CategoryID, isouter=True).filter(
+            or_(
+                Product.ProductName.ilike(f"%{search}%"),
+                Category.CategoryName.ilike(f"%{search}%")
+            )
+        )
         
     if category_id is not None:
         query = query.filter(Product.CategoryID == category_id)
