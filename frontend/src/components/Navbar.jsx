@@ -179,11 +179,11 @@ const Navbar = () => {
 
           {/* Live Date & Time - Centered */}
           <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 flex-col items-center justify-center text-slate-500 font-khmer text-xs">
-            <span className="font-semibold text-slate-600">
-              {currentDateTime.toLocaleDateString('km-KH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            <span className="font-semibold text-slate-600 dark:text-slate-300">
+              {currentDateTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
             </span>
             <span className="text-[10px] text-amber-600 mt-0.5 tracking-wider font-mono font-semibold">
-              {currentDateTime.toLocaleTimeString('km-KH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+              {currentDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </span>
           </div>
 
