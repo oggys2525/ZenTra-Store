@@ -350,13 +350,7 @@ const Navbar = () => {
               )}
             </Link>
             <button
-              onClick={() => {
-                if (location.pathname === '/products') {
-                  window.dispatchEvent(new CustomEvent('open-mobile-filters'));
-                } else {
-                  setMobileMenuOpen(!mobileMenuOpen);
-                }
-              }}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-md text-slate-600 hover:text-slate-900 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -393,88 +387,111 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu (Popup Floating Card) */}
-      <div className={`fixed inset-0 z-50 md:hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+      {/* Mobile Drawer Menu (Right Side Drawer) */}
+      <div className={`fixed inset-0 z-50 flex justify-end md:hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         {/* Backdrop */}
         <div 
-          className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
           onClick={() => setMobileMenuOpen(false)}
         ></div>
 
-        {/* Floating Card */}
-        <div className={`absolute top-[120px] right-4 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800/80 p-5 space-y-5 font-khmer overflow-hidden transition-all duration-300 origin-top-right ${mobileMenuOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-
-          {/* Search bar */}
-          <form onSubmit={handleSearchSubmit} className="relative z-10">
-            <input
-              type="text"
-              placeholder="ស្វែងរកផលិតផល..."
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full py-2 pr-4 text-xs border rounded-full pl-9 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50"
-            />
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
-          </form>
-
-          {/* Navigation Links Grid (2x2) */}
-          <div className="relative grid grid-cols-2 gap-2.5 z-10">
-            <Link 
-              to="/" 
+        {/* Drawer Panel */}
+        <div className={`relative w-80 max-w-[85vw] bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col p-6 space-y-6 z-10 transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          {/* Drawer Header */}
+          <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center space-x-2">
+              <img 
+                src={storeSettings ? getImageUrl(storeSettings.Logo) : '/logo.png'} 
+                alt="Logo" 
+                className="object-cover border rounded-full h-7 w-7 border-amber-500/50"
+                onError={(e) => { e.target.src = '/logo.png'; }}
+              />
+              <span className="font-bold text-slate-800 dark:text-slate-200 text-sm font-khmer">
+                {storeSettings ? storeSettings.StoreName : 'ZenTra Store'}
+              </span>
+            </div>
+            <button 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
-              <HomeIcon className="h-4 w-4 text-amber-500" />
-              <span>ទំព័រដើម</span>
-            </Link>
-            <Link 
-              to="/products" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
-            >
-              <ShoppingBag className="h-4 w-4 text-amber-500" />
-              <span>ផលិតផល</span>
-            </Link>
-            <Link 
-              to="/about" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
-            >
-              <Info className="h-4 w-4 text-amber-500" />
-              <span>អំពីយើង</span>
-            </Link>
-            <Link 
-              to="/contact" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
-            >
-              <Mail className="h-4 w-4 text-amber-500" />
-              <span>ទំនាក់ទំនង</span>
-            </Link>
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Categories Horizontal Scroll */}
-          <div className="relative flex flex-col space-y-1.5 z-10">
-            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold px-1">ប្រភេទផលិតផល</span>
-            <div className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.CategoryID}
-                  to={`/products?category_id=${cat.CategoryID}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] shrink-0 font-medium transition-all ${
-                    categoryIdParam === cat.CategoryID.toString()
-                      ? 'text-amber-700 bg-amber-100/60 dark:bg-amber-950/30 dark:text-amber-400 font-bold shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-100/50 dark:border-slate-800'
-                  }`}
-                >
-                  {cat.CategoryName}
-                </Link>
-              ))}
+          {/* Drawer Content (Scrollable) */}
+          <div className="flex-1 flex flex-col space-y-6 overflow-y-auto pr-1 -mr-3 scrollbar-none">
+            {/* Search bar */}
+            <form onSubmit={handleSearchSubmit} className="relative z-10">
+              <input
+                type="text"
+                placeholder="ស្វែងរកផលិតផល..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full py-2.5 pr-4 text-xs border rounded-full pl-9 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50"
+              />
+              <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
+            </form>
+
+            {/* Navigation Links Grid (2x2) */}
+            <div className="relative grid grid-cols-2 gap-2.5 z-10">
+              <Link 
+                to="/" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-3 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              >
+                <HomeIcon className="h-4 w-4 text-amber-500" />
+                <span>ទំព័រដើម</span>
+              </Link>
+              <Link 
+                to="/products" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-3 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              >
+                <ShoppingBag className="h-4 w-4 text-amber-500" />
+                <span>ផលិតផល</span>
+              </Link>
+              <Link 
+                to="/about" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-3 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              >
+                <Info className="h-4 w-4 text-amber-500" />
+                <span>អំពីយើង</span>
+              </Link>
+              <Link 
+                to="/contact" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-3 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              >
+                <Mail className="h-4 w-4 text-amber-500" />
+                <span>ទំនាក់ទំនង</span>
+              </Link>
+            </div>
+
+            {/* Categories list */}
+            <div className="relative flex flex-col space-y-2 z-10">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold px-1">ប្រភេទផលិតផល</span>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.CategoryID}
+                    to={`/products?category_id=${cat.CategoryID}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                      categoryIdParam === cat.CategoryID.toString()
+                        ? 'text-amber-700 bg-amber-100/60 dark:bg-amber-950/30 dark:text-amber-400 font-bold shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-100/50 dark:border-slate-800'
+                    }`}
+                  >
+                    {cat.CategoryName}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Footer User Block */}
-          <div className="relative pt-4 border-t border-slate-100 dark:border-slate-800/80 z-10">
+          <div className="relative pt-4 border-t border-slate-100 dark:border-slate-800/80 z-10 mt-auto">
             {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Staff') && (
               <Link 
                 to="/admin" 
