@@ -379,20 +379,6 @@ const Navbar = () => {
               <Link to="/products" className={getTabClass('/products', 'products')}>ផលិតផល</Link>
               
 
-              {/* Mobile Only: Inline scrollable categories */}
-              {categories.map((cat) => (
-                <Link
-                  key={cat.CategoryID}
-                  to={`/products?category_id=${cat.CategoryID}`}
-                  className={`md:hidden px-3.5 py-1.5 rounded-full text-xs font-khmer transition-all duration-200 ${
-                    categoryIdParam === cat.CategoryID.toString()
-                      ? 'text-amber-700 bg-amber-50 font-semibold shadow-sm'
-                      : 'text-slate-600 hover:text-amber-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {cat.CategoryName}
-                </Link>
-              ))}
 
               <Link to="/about" className={getTabClass('/about', 'exact')}>អំពីយើង</Link>
               <Link to="/contact" className={getTabClass('/contact', 'exact')}>ទំនាក់ទំនង</Link>
