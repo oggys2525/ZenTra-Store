@@ -410,7 +410,7 @@ const Navbar = () => {
         ></div>
 
         {/* Floating Card */}
-        <div className={`absolute top-16 left-4 right-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800/80 p-4 space-y-4 font-khmer overflow-hidden transition-all duration-300 origin-top ${mobileMenuOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+        <div className={`absolute top-[120px] right-4 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800/80 p-5 space-y-5 font-khmer overflow-hidden transition-all duration-300 origin-top-right ${mobileMenuOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
 
           {/* Search bar */}
           <form onSubmit={handleSearchSubmit} className="relative z-10">
@@ -425,11 +425,11 @@ const Navbar = () => {
           </form>
 
           {/* Navigation Links Grid (2x2) */}
-          <div className="relative grid grid-cols-2 gap-2 z-10">
+          <div className="relative grid grid-cols-2 gap-2.5 z-10">
             <Link 
               to="/" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
               <HomeIcon className="h-4 w-4 text-amber-500" />
               <span>ទំព័រដើម</span>
@@ -437,7 +437,7 @@ const Navbar = () => {
             <Link 
               to="/products" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
               <ShoppingBag className="h-4 w-4 text-amber-500" />
               <span>ផលិតផល</span>
@@ -445,7 +445,7 @@ const Navbar = () => {
             <Link 
               to="/about" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
               <Info className="h-4 w-4 text-amber-500" />
               <span>អំពីយើង</span>
@@ -453,7 +453,7 @@ const Navbar = () => {
             <Link 
               to="/contact" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
+              className="flex items-center space-x-2 px-3 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
               <Mail className="h-4 w-4 text-amber-500" />
               <span>ទំនាក់ទំនង</span>
@@ -482,12 +482,12 @@ const Navbar = () => {
           </div>
 
           {/* Footer User Block */}
-          <div className="relative pt-3 border-t border-slate-100 dark:border-slate-800/80 z-10">
+          <div className="relative pt-4 border-t border-slate-100 dark:border-slate-800/80 z-10">
             {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Staff') && (
               <Link 
                 to="/admin" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center w-full px-3 py-2 mb-3.5 space-x-2 font-semibold text-[10px] text-indigo-700 dark:text-indigo-400 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100/50 dark:border-indigo-900/30 transition-all hover:bg-indigo-100/50"
+                className="flex items-center justify-center w-full px-3 py-2.5 mb-3.5 space-x-2 font-semibold text-[10px] text-indigo-700 dark:text-indigo-400 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100/50 dark:border-indigo-900/30 transition-all hover:bg-indigo-100/50"
               >
                 <ShieldAlert className="w-3.5 h-3.5" />
                 <span>គ្រប់គ្រងហាង</span>
@@ -495,7 +495,7 @@ const Navbar = () => {
             )}
 
             {currentUser ? (
-              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{currentUser.fullname}</span>
                   <span className="text-[9px] text-slate-400 capitalize">{currentUser.role}</span>
@@ -515,7 +515,7 @@ const Navbar = () => {
               <Link 
                 to="/login" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center w-full py-2.5 space-x-2 text-xs font-bold text-white rounded-xl bg-gradient-to-r from-blue-900 to-indigo-950 hover:opacity-90 transition-all"
+                className="flex items-center justify-center w-full py-3 space-x-2 text-xs font-bold text-white rounded-xl bg-gradient-to-r from-blue-900 to-indigo-950 hover:opacity-90 transition-all"
               >
                 <User className="w-3.5 h-3.5" />
                 <span>ចូលគណនី</span>
