@@ -31,6 +31,16 @@ const Products = () => {
       .catch(err => console.error(err));
   }, []);
 
+  useEffect(() => {
+    const handleOpenFilters = () => {
+      setMobileFilterOpen(true);
+    };
+    window.addEventListener('open-mobile-filters', handleOpenFilters);
+    return () => {
+      window.removeEventListener('open-mobile-filters', handleOpenFilters);
+    };
+  }, []);
+
   const fetchFilteredProducts = async () => {
     try {
       setLoading(true);

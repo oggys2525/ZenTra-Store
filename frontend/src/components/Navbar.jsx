@@ -350,7 +350,13 @@ const Navbar = () => {
               )}
             </Link>
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                if (location.pathname === '/products') {
+                  window.dispatchEvent(new CustomEvent('open-mobile-filters'));
+                } else {
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }
+              }}
               className="p-2 rounded-md text-slate-600 hover:text-slate-900 focus:outline-none"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
