@@ -156,8 +156,9 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="shadow-sm glass-navbar">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+    <>
+      <nav className="shadow-sm glass-navbar">
+        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div className="relative flex items-center justify-between h-16">
           {/* Logo & Brand */}
           <div className="flex items-center">
@@ -386,8 +387,9 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile Drawer Menu (Right Side Drawer) */}
+    {/* Mobile Drawer Menu (Right Side Drawer) */}
       <div className={`fixed inset-0 z-50 flex justify-end md:hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         {/* Backdrop */}
         <div 
@@ -533,7 +535,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-    </nav>
+    </>
   );
 };
 
