@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
@@ -33,6 +34,8 @@ Base = declarative_base()
 engine = None
 is_sqlite = False
 
+is_production = os.getenv("RENDER") == "true" or (DATABASE_URL and ("render.com" in DATABASE_URL or "postgresql" in DATABASE_URL))
+
 if DATABASE_URL:
     db_type = "Database"
     if "postgresql" in DATABASE_URL:
@@ -40,25 +43,40 @@ if DATABASE_URL:
     elif "mssql" in DATABASE_URL:
         db_type = "SQL Server"
         
-    try:
-        logger.info(f"Attempting to connect to {db_type}...")
-        engine = create_engine(
-            DATABASE_URL,
-            pool_pre_ping=True,
-            pool_recycle=1800,
-        )
-        # Test connection
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        logger.info(f"Successfully connected to {db_type}!")
-    except Exception as e:
-        # Avoid logging the connection string with passwords
-        masked_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "configured DATABASE_URL"
-        logger.warning(
-            f"{db_type} connection to '{masked_url}' failed: {e}\n"
-            f"Falling back to SQLite database..."
-        )
-        engine = None
+    max_retries = 5
+    retry_delay = 2  # seconds
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Attempting to connect to {db_type} (Attempt {attempt}/{max_retries})...")
+            engine = create_engine(
+                DATABASE_URL,
+                pool_pre_ping=True,
+                pool_recycle=1800,
+            )
+            # Test connection
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            logger.info(f"Successfully connected to {db_type}!")
+            break
+        except Exception as e:
+            masked_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "configured DATABASE_URL"
+            logger.warning(f"Connection attempt {attempt} failed: {e}")
+            engine = None
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+            else:
+                if is_production:
+                    logger.error(
+                        f"CRITICAL: Failed to connect to production {db_type} at '{masked_url}' after {max_retries} attempts.\n"
+                        f"Disabling SQLite fallback in production to prevent data loss."
+                    )
+                    raise e
+                else:
+                    logger.warning(
+                        f"Local development connection to '{masked_url}' failed.\n"
+                        f"Falling back to SQLite database..."
+                    )
 
 if engine is None:
     logger.info(f"Using SQLite fallback database at {SQLITE_FALLBACK_URL}...")

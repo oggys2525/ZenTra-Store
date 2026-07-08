@@ -39,7 +39,7 @@ htmlcov/
 *.env
 
 # SQLite and other database files
-*.db
+# Allow tracking of zentra_store.db while ignoring other sqlite databases
 *.sqlite
 *.sqlite3
 *.log

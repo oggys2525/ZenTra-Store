@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert, ChevronDown, Sun, Moon, Monitor } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Menu, X, Search, ShieldAlert, Sun, Moon, Monitor, Home as HomeIcon, ShoppingBag, Info, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { authService, settingsService, categoryService, getImageUrl } from '../services/api';
 
@@ -14,7 +14,6 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState([]);
-  const [categoriesDropdownOpen, setCategoriesDropdownOpen] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   
   const [theme, setTheme] = useState(localStorage.getItem('zentra_theme') || 'system');
@@ -148,8 +147,6 @@ const Navbar = () => {
       active = location.pathname === path;
     } else if (matchType === 'products') {
       active = location.pathname === '/products' && !categoryIdParam;
-    } else if (matchType === 'categories') {
-      active = (location.pathname === '/products' && !!categoryIdParam) || categoriesDropdownOpen;
     }
 
     const baseClass = "px-4 py-1.5 rounded-full text-sm font-medium font-khmer transition-all duration-200";
@@ -159,39 +156,39 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="glass-navbar shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex justify-between h-16 items-center">
+    <nav className="shadow-sm glass-navbar">
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="relative flex items-center justify-between h-16">
           {/* Logo & Brand */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <img 
                 src={storeSettings ? getImageUrl(storeSettings.Logo) : '/logo.png'} 
                 alt="Logo" 
-                className="h-9 w-9 rounded-full object-cover border border-amber-500/50"
+                className="object-cover border rounded-full h-9 w-9 border-amber-500/50"
                 onError={(e) => { e.target.src = '/logo.png'; }}
               />
-              <span className="hidden sm:inline font-bold text-xl tracking-wide bg-gradient-to-r from-blue-900 via-indigo-950 to-amber-700 bg-clip-text text-transparent font-khmer">
+              <span className="hidden text-xl font-bold tracking-wide text-transparent sm:inline bg-gradient-to-r from-blue-900 via-indigo-950 to-amber-700 bg-clip-text font-khmer">
                 {storeSettings ? storeSettings.StoreName : 'ZenTra Store'}
               </span>
             </Link>
           </div>
 
           {/* Live Date & Time - Centered */}
-          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 flex-col items-center justify-center text-slate-500 font-khmer text-xs">
-            <span className="font-semibold text-slate-600 dark:text-slate-300">
-              {currentDateTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          <div className="absolute flex flex-col items-center justify-center text-center -translate-x-1/2 left-1/2 font-khmer z-20">
+            <span className="text-[9px] sm:text-xs font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+              {currentDateTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            <span className="text-[10px] text-amber-600 mt-0.5 tracking-wider font-mono font-semibold">
+            <span className="text-[8px] sm:text-[10px] text-amber-500 dark:text-amber-400 mt-0.5 tracking-wider font-mono font-bold">
               {currentDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </span>
           </div>
 
           {/* Cart & User Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="items-center hidden space-x-4 md:flex">
             {/* Cart Icon */}
-            <Link to="/cart" className="relative p-2 text-slate-600 hover:text-amber-600 transition-colors duration-200">
-              <ShoppingCart className="h-5 w-5" />
+            <Link to="/cart" className="relative p-2 transition-colors duration-200 text-slate-600 hover:text-amber-600">
+              <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
                   {cartCount}
@@ -203,12 +200,12 @@ const Navbar = () => {
             <div className="relative theme-dropdown-container">
               <button 
                 onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-                className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-200 focus:outline-none cursor-pointer"
+                className="p-2 transition-colors duration-200 cursor-pointer text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none"
                 title="ប្តូរពណ៌ផ្ទៃ (Theme)"
               >
-                {theme === 'light' && <Sun className="h-5 w-5 text-amber-500 animate-spin-slow" />}
-                {theme === 'dark' && <Moon className="h-5 w-5 text-indigo-500" />}
-                {theme === 'system' && <Monitor className="h-5 w-5 text-slate-500" />}
+                {theme === 'light' && <Sun className="w-5 h-5 text-amber-500 animate-spin-slow" />}
+                {theme === 'dark' && <Moon className="w-5 h-5 text-indigo-500" />}
+                {theme === 'system' && <Monitor className="w-5 h-5 text-slate-500" />}
               </button>
 
               {themeDropdownOpen && (
@@ -265,17 +262,17 @@ const Navbar = () => {
 
             {/* User Dropdown / Login */}
             {currentUser ? (
-              <div className="flex items-center space-x-3 pl-2 border-l border-slate-200">
+              <div className="flex items-center pl-2 space-x-3 border-l border-slate-200">
                 <div className="flex flex-col text-right">
                   <span className="text-xs font-bold text-slate-700 font-khmer">{currentUser.fullname}</span>
                   <span className="text-[10px] text-slate-400 font-medium capitalize">{currentUser.role}</span>
                 </div>
                 <button 
                   onClick={handleLogout}
-                  className="p-2 rounded-full text-slate-400 hover:bg-slate-100 hover:text-red-500 transition-all"
+                  className="p-2 transition-all rounded-full text-slate-400 hover:bg-slate-100 hover:text-red-500"
                   title="ចាកចេញ"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
@@ -290,17 +287,17 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="flex items-center space-x-2 md:hidden">
             {/* Theme Toggle (Mobile) */}
             <div className="relative theme-dropdown-container">
               <button 
                 onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-                className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors duration-200 focus:outline-none cursor-pointer"
+                className="p-2 transition-colors duration-200 cursor-pointer text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none"
                 title="ប្តូរពណ៌ផ្ទៃ (Theme)"
               >
-                {theme === 'light' && <Sun className="h-5 w-5 text-amber-500 animate-spin-slow" />}
-                {theme === 'dark' && <Moon className="h-5 w-5 text-indigo-500" />}
-                {theme === 'system' && <Monitor className="h-5 w-5 text-slate-500" />}
+                {theme === 'light' && <Sun className="w-5 h-5 text-amber-500 animate-spin-slow" />}
+                {theme === 'dark' && <Moon className="w-5 h-5 text-indigo-500" />}
+                {theme === 'system' && <Monitor className="w-5 h-5 text-slate-500" />}
               </button>
 
               {themeDropdownOpen && (
@@ -345,7 +342,7 @@ const Navbar = () => {
             </div>
 
             <Link to="/cart" className="relative p-2 text-slate-600 hover:text-amber-600">
-              <ShoppingCart className="h-5 w-5" />
+              <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                   {cartCount}
@@ -356,14 +353,14 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-md text-slate-600 hover:text-slate-900 focus:outline-none"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
         {/* Navigation & Search Menu (Scrollable on mobile) */}
         <div className="flex overflow-x-auto whitespace-nowrap scrollbar-none border-t border-slate-100/50 py-2.5 px-4 md:px-8 items-center">
-          <div className="flex items-center space-x-6 md:space-x-12 w-full">
+          <div className="flex items-center w-full space-x-6 md:space-x-12">
             {/* Search Form on the Left */}
             <form onSubmit={handleSearchSubmit} className="relative w-44 md:w-56 shrink-0">
               <input
@@ -377,58 +374,10 @@ const Navbar = () => {
             </form>
 
             {/* Navigation Links */}
-            <div className="flex space-x-5 md:space-x-8 items-center font-khmer text-xs md:text-sm font-medium text-slate-700">
+            <div className="flex items-center space-x-5 text-xs font-medium md:space-x-8 font-khmer md:text-sm text-slate-700">
               <Link to="/" className={getTabClass('/', 'exact')}>ទំព័រដើម</Link>
               <Link to="/products" className={getTabClass('/products', 'products')}>ផលិតផល</Link>
               
-              {/* Desktop Only: Categories Dropdown Tab */}
-              <div 
-                className="hidden md:block relative"
-                onMouseEnter={() => setCategoriesDropdownOpen(true)}
-                onMouseLeave={() => setCategoriesDropdownOpen(false)}
-              >
-                <Link 
-                  to="/products"
-                  onClick={() => setCategoriesDropdownOpen(false)}
-                  className={`${getTabClass('/products?category_id', 'categories')} flex items-center space-x-1 cursor-pointer focus:outline-none`}
-                >
-                  <span>ប្រភេទ</span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${categoriesDropdownOpen ? 'rotate-180' : ''}`} />
-                </Link>
-                
-                {/* Dropdown Menu */}
-                {categoriesDropdownOpen && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-52 rounded-2xl bg-white p-1.5 shadow-xl border border-slate-100/80 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="flex flex-col space-y-0.5">
-                      <Link
-                        to="/products"
-                        onClick={() => setCategoriesDropdownOpen(false)}
-                        className={`px-3 py-1.5 rounded-xl text-left transition-all ${
-                          !categoryIdParam
-                            ? 'bg-amber-50 text-amber-700 font-bold'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'
-                        }`}
-                      >
-                        ទាំងអស់
-                      </Link>
-                      {categories.map((cat) => (
-                        <Link
-                          key={cat.CategoryID}
-                          to={`/products?category_id=${cat.CategoryID}`}
-                          onClick={() => setCategoriesDropdownOpen(false)}
-                          className={`px-3 py-1.5 rounded-xl text-left transition-all ${
-                            categoryIdParam === cat.CategoryID.toString()
-                              ? 'bg-amber-50 text-amber-700 font-bold'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'
-                          }`}
-                        >
-                          {cat.CategoryName}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Mobile Only: Inline scrollable categories */}
               {categories.map((cat) => (
@@ -452,79 +401,113 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-100 py-3 px-4 space-y-3 font-khmer animate-in slide-in-from-top duration-200">
-          {/* Mobile Search */}
-          <form onSubmit={handleSearchSubmit} className="relative">
+      {/* Mobile Drawer Menu (Popup Floating Card) */}
+      <div className={`fixed inset-0 z-50 md:hidden transition-all duration-300 ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300"
+          onClick={() => setMobileMenuOpen(false)}
+        ></div>
+
+        {/* Floating Card */}
+        <div className={`absolute top-16 left-4 right-4 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800/80 p-4 space-y-4 font-khmer overflow-hidden transition-all duration-300 origin-top ${mobileMenuOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+
+          {/* Search bar */}
+          <form onSubmit={handleSearchSubmit} className="relative z-10">
             <input
               type="text"
               placeholder="ស្វែងរកផលិតផល..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500"
+              className="w-full py-2 pr-4 text-xs border rounded-full pl-9 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50"
             />
-            <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
           </form>
 
-          {/* Mobile Navigation Links */}
-          <div className="flex flex-col space-y-2 pt-2">
+          {/* Navigation Links Grid (2x2) */}
+          <div className="relative grid grid-cols-2 gap-2 z-10">
             <Link 
               to="/" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 text-slate-700 font-medium"
+              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
-              ទំព័រដើម
+              <HomeIcon className="h-4 w-4 text-amber-500" />
+              <span>ទំព័រដើម</span>
             </Link>
             <Link 
               to="/products" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 text-slate-700 font-medium"
+              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
-              ផលិតផល
+              <ShoppingBag className="h-4 w-4 text-amber-500" />
+              <span>ផលិតផល</span>
             </Link>
             <Link 
               to="/about" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 text-slate-700 font-medium"
+              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
-              អំពីយើង
+              <Info className="h-4 w-4 text-amber-500" />
+              <span>អំពីយើង</span>
             </Link>
             <Link 
               to="/contact" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 text-slate-700 font-medium"
+              className="flex items-center space-x-2 px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-950/10 border border-slate-100 dark:border-slate-800 transition-all"
             >
-              ទំនាក់ទំនង
+              <Mail className="h-4 w-4 text-amber-500" />
+              <span>ទំនាក់ទំនង</span>
             </Link>
           </div>
 
-          <div className="border-t border-slate-100 pt-3">
+          {/* Categories Horizontal Scroll */}
+          <div className="relative flex flex-col space-y-1.5 z-10">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold px-1">ប្រភេទផលិតផល</span>
+            <div className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.CategoryID}
+                  to={`/products?category_id=${cat.CategoryID}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-1.5 rounded-full text-[10px] shrink-0 font-medium transition-all ${
+                    categoryIdParam === cat.CategoryID.toString()
+                      ? 'text-amber-700 bg-amber-100/60 dark:bg-amber-950/30 dark:text-amber-400 font-bold shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-100/50 dark:border-slate-800'
+                  }`}
+                >
+                  {cat.CategoryName}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer User Block */}
+          <div className="relative pt-3 border-t border-slate-100 dark:border-slate-800/80 z-10">
             {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Staff') && (
               <Link 
                 to="/admin" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-md bg-indigo-50 text-indigo-700 font-medium mb-2"
+                className="flex items-center justify-center w-full px-3 py-2 mb-3.5 space-x-2 font-semibold text-[10px] text-indigo-700 dark:text-indigo-400 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100/50 dark:border-indigo-900/30 transition-all hover:bg-indigo-100/50"
               >
-                <ShieldAlert className="h-4 w-4" />
+                <ShieldAlert className="w-3.5 h-3.5" />
                 <span>គ្រប់គ្រងហាង</span>
               </Link>
             )}
 
             {currentUser ? (
-              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-700">{currentUser.fullname}</span>
-                  <span className="text-[10px] text-slate-400 capitalize">{currentUser.role}</span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{currentUser.fullname}</span>
+                  <span className="text-[9px] text-slate-400 capitalize">{currentUser.role}</span>
                 </div>
                 <button 
                   onClick={() => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="flex items-center space-x-1 text-red-500 text-xs font-semibold"
+                  className="flex items-center space-x-1 text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                   <span>ចាកចេញ</span>
                 </button>
               </div>
@@ -532,15 +515,15 @@ const Navbar = () => {
               <Link 
                 to="/login" 
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center space-x-2 w-full py-2 bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-lg text-sm font-bold"
+                className="flex items-center justify-center w-full py-2.5 space-x-2 text-xs font-bold text-white rounded-xl bg-gradient-to-r from-blue-900 to-indigo-950 hover:opacity-90 transition-all"
               >
-                <User className="h-4 w-4" />
+                <User className="w-3.5 h-3.5" />
                 <span>ចូលគណនី</span>
               </Link>
             )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 };
