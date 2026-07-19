@@ -49,6 +49,8 @@ async def create_order(
         CustomerAddress=order_in.CustomerAddress,
         PaymentMethod=order_in.PaymentMethod,
         TotalAmount=0,  # Will calculate below
+        DiscountAmount=0,
+        PromoCode=None,
         OrderStatus="Pending",
         PaymentStatus="Unpaid"
     )
@@ -101,8 +103,27 @@ async def create_order(
         )
         db.add(db_detail)
 
-    # Update order total
-    db_order.TotalAmount = total_amount
+    # Calculate discount if promo code is provided
+    discount_amount = 0.0
+    applied_promo = None
+    if order_in.PromoCode:
+        from backend.app.models.models import PromoCode as PromoCodeModel
+        promo = db.query(PromoCodeModel).filter(PromoCodeModel.Code == order_in.PromoCode.upper()).first()
+        if promo and promo.Status == "Active":
+            # Expiry check
+            if not promo.ExpiryDate or promo.ExpiryDate >= datetime.utcnow():
+                if total_amount >= promo.MinOrderAmount:
+                    applied_promo = promo.Code
+                    if promo.DiscountType == "Percentage":
+                        discount_amount = float(total_amount) * (float(promo.DiscountValue) / 100.0)
+                    elif promo.DiscountType == "Fixed":
+                        discount_amount = float(promo.DiscountValue)
+                    discount_amount = min(discount_amount, float(total_amount))
+
+    # Update order total and discount
+    db_order.DiscountAmount = discount_amount
+    db_order.PromoCode = applied_promo
+    db_order.TotalAmount = float(total_amount) - discount_amount
     db.commit()
     db.refresh(db_order)
 

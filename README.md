@@ -105,9 +105,36 @@ ZenTra_Store/
    - *Note: If SQL Server connection fails, the system automatically falls back to an SQLite file (`zentra_store.db`) to ensure immediate availability for development.*
 
 5. Run the FastAPI development server:
-   ```powershell
-   uvicorn app.main:app --reload --port 8000
-   ```
+   Since the application uses absolute imports (e.g., starting with `backend.app`), you must set the `PYTHONPATH` so Python can locate the modules.
+
+   **From the root directory (`ZenTra_Store`):**
+   * **PowerShell**:
+     ```powershell
+     $env:PYTHONPATH="."; .\backend\venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --port 8000
+     ```
+   * **Command Prompt (CMD)**:
+     ```cmd
+     set PYTHONPATH=.&& .\backend\venv\Scripts\python.exe -m uvicorn backend.app.main:app --reload --port 8000
+     ```
+   * **Git Bash**:
+     ```bash
+     PYTHONPATH=. ./backend/venv/Scripts/python -m uvicorn backend.app.main:app --reload --port 8000
+     ```
+
+   **From the `backend` directory (`ZenTra_Store/backend`):**
+   * **PowerShell**:
+     ```powershell
+     $env:PYTHONPATH=".."; .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+     ```
+   * **Command Prompt (CMD)**:
+     ```cmd
+     set PYTHONPATH=..&& .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+     ```
+   * **Git Bash**:
+     ```bash
+     PYTHONPATH=.. ./venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
+     ```
+
    The backend API documentation will be available at: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### 3. Frontend Setup

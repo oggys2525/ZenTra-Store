@@ -125,6 +125,7 @@ class OrderCreate(BaseModel):
     CustomerPhone: str
     CustomerAddress: str
     PaymentMethod: str = "COD" # COD, KHQR
+    PromoCode: Optional[str] = None
     Details: List[OrderDetailCreate]
 
 class OrderStatusUpdate(BaseModel):
@@ -139,6 +140,8 @@ class Order(BaseModel):
     CustomerAddress: str
     PaymentMethod: str
     TotalAmount: Decimal
+    DiscountAmount: Optional[Decimal] = None
+    PromoCode: Optional[str] = None
     OrderStatus: str
     PaymentStatus: str
     CreatedDate: datetime
@@ -167,3 +170,35 @@ class StoreSettingUpdate(BaseModel):
 
 class StoreSetting(StoreSettingBase):
     model_config = ConfigDict(from_attributes=True)
+
+# ========================================================
+# Promo Code Schemas
+# ========================================================
+class PromoCodeBase(BaseModel):
+    Code: str
+    DiscountType: str # 'Percentage' or 'Fixed'
+    DiscountValue: Decimal
+    MinOrderAmount: Decimal = 0.00
+    ExpiryDate: Optional[datetime] = None
+    Status: str = "Active"
+
+class PromoCodeCreate(PromoCodeBase):
+    pass
+
+class PromoCodeUpdate(BaseModel):
+    Code: Optional[str] = None
+    DiscountType: Optional[str] = None
+    DiscountValue: Optional[Decimal] = None
+    MinOrderAmount: Optional[Decimal] = None
+    ExpiryDate: Optional[datetime] = None
+    Status: Optional[str] = None
+
+class PromoCode(PromoCodeBase):
+    PromoID: int
+    CreatedDate: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PromoCodeValidate(BaseModel):
+    Code: str
+    OrderAmount: Decimal

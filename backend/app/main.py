@@ -15,7 +15,7 @@ from backend.app.auth import get_staff_or_admin_user, get_password_hash
 from backend.app.websocket import manager
 
 # Import routers
-from backend.app.routers import auth, products, categories, orders, users, settings
+from backend.app.routers import auth, products, categories, orders, users, settings, promocodes
 
 logger = logging.getLogger("main")
 
@@ -38,8 +38,7 @@ app.add_middleware(
 # Ensure uploads directory exists and mount it
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 if not os.path.isabs(UPLOAD_DIR):
-    backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    UPLOAD_DIR = os.path.abspath(os.path.join(backend_root, UPLOAD_DIR))
+    UPLOAD_DIR = os.path.abspath(UPLOAD_DIR)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
@@ -50,6 +49,7 @@ app.include_router(categories.router)
 app.include_router(orders.router)
 app.include_router(users.router)
 app.include_router(settings.router)
+app.include_router(promocodes.router)
 
 @app.get("/")
 def read_root():

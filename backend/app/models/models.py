@@ -57,6 +57,8 @@ class Order(Base):
     CustomerAddress = Column(Text, nullable=False)
     PaymentMethod = Column(String(50), default="COD") # COD, KHQR
     TotalAmount = Column(Numeric(18, 2), nullable=False)
+    DiscountAmount = Column(Numeric(18, 2), default=0.00)
+    PromoCode = Column(String(50), nullable=True)
     OrderStatus = Column(String(50), default="Pending") # Pending, Confirmed, Shipping, Completed, Cancelled
     PaymentStatus = Column(String(50), default="Unpaid") # Unpaid, Paid
     CreatedDate = Column(DateTime, default=datetime.utcnow)
@@ -86,3 +88,15 @@ class StoreSetting(Base):
     Address = Column(Text, nullable=True)
     Facebook = Column(String(200), nullable=True)
     Telegram = Column(String(200), nullable=True)
+
+class PromoCode(Base):
+    __tablename__ = "PromoCodes"
+
+    PromoID = Column(Integer, primary_key=True, index=True)
+    Code = Column(String(50), unique=True, index=True, nullable=False)
+    DiscountType = Column(String(20), nullable=False) # 'Percentage' or 'Fixed'
+    DiscountValue = Column(Numeric(18, 2), nullable=False)
+    MinOrderAmount = Column(Numeric(18, 2), default=0.00)
+    ExpiryDate = Column(DateTime, nullable=True)
+    Status = Column(String(50), default="Active") # Active, Inactive
+    CreatedDate = Column(DateTime, default=datetime.utcnow)

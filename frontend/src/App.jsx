@@ -24,9 +24,11 @@ import AdminCategories from './admin/Categories';
 import AdminOrders from './admin/Orders';
 import AdminUsers from './admin/Users';
 import AdminSettings from './admin/Settings';
+import AdminPromoCodes from './admin/PromoCodes';
 
-// Global Shopping Cart Context
+// Global Shopping Cart & Language Context
 import { CartProvider } from './context/CartContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 // Customer layout wrapper to render Navbar & Footer around child pages
 const CustomerLayout = () => {
@@ -43,36 +45,39 @@ const CustomerLayout = () => {
 
 function App() {
   return (
-    <CartProvider>
-      <Router>
-        <Routes>
-          
-          {/* Customer Facing Routes */}
-          <Route path="/" element={<CustomerLayout />}>
-            <Route index element={<Home />} />
-            <Route path="products" element={<Products />} />
-            <Route path="product/:id" element={<ProductDetail />} />
-            <Route path="cart" element={<Cart />} />
-            <Route path="checkout" element={<Checkout />} />
-            <Route path="about" element={<About />} />
-            <Route path="contact" element={<Contact />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-          </Route>
+    <LanguageProvider>
+      <CartProvider>
+        <Router>
+          <Routes>
+            
+            {/* Customer Facing Routes */}
+            <Route path="/" element={<CustomerLayout />}>
+              <Route index element={<Home />} />
+              <Route path="products" element={<Products />} />
+              <Route path="product/:id" element={<ProductDetail />} />
+              <Route path="cart" element={<Cart />} />
+              <Route path="checkout" element={<Checkout />} />
+              <Route path="about" element={<About />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
+            </Route>
 
-          {/* Admin Dashboard Protected Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="settings" element={<AdminSettings />} />
-          </Route>
+            {/* Admin Dashboard Protected Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="promocodes" element={<AdminPromoCodes />} />
+            </Route>
 
-        </Routes>
-      </Router>
-    </CartProvider>
+          </Routes>
+        </Router>
+      </CartProvider>
+    </LanguageProvider>
   );
 }
 

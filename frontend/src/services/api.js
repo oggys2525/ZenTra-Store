@@ -190,6 +190,29 @@ export const dashboardService = {
   },
 };
 
+export const promocodeService = {
+  getPromoCodes: async () => {
+    const response = await api.get('/api/promocodes');
+    return response.data;
+  },
+  createPromoCode: async (promoData) => {
+    const response = await api.post('/api/promocodes', promoData);
+    return response.data;
+  },
+  updatePromoCode: async (id, promoData) => {
+    const response = await api.put(`/api/promocodes/${id}`, promoData);
+    return response.data;
+  },
+  deletePromoCode: async (id) => {
+    const response = await api.delete(`/api/promocodes/${id}`);
+    return response.data;
+  },
+  validatePromoCode: async (code, amount) => {
+    const response = await api.post('/api/promocodes/validate', { Code: code, OrderAmount: amount });
+    return response.data;
+  },
+};
+
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '/logo.png'; // Fallback
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, MapPin, Send, ShoppingBag } from 'lucide-react';
 import { settingsService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const Footer = () => {
   const [storeSettings, setStoreSettings] = useState(null);
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     settingsService.getSettings()
@@ -25,33 +27,33 @@ const Footer = () => {
                 {storeSettings ? storeSettings.StoreName : 'ZenTra Store'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              ZenTra Store ហាងលក់សម្លៀកបំពាក់អនឡាញឈានមុខគេនៅកម្ពុជា។ យើងខ្ញុំនាំមកជូននូវផលិតផលម៉ូដថ្មីៗ គុណភាពខ្ពស់ និងតម្លៃសមរម្យបំផុតសម្រាប់លោកអ្នក។
+            <p className="text-xs text-slate-400 leading-relaxed font-khmer">
+              {t('footerDesc')}
             </p>
           </div>
 
           {/* Quick links */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">តំណភ្ជាប់រហ័ស</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t('quickLinks')}</h3>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link to="/" className="hover:text-amber-400 transition-colors">ទំព័រដើម</Link>
+                <Link to="/" className="hover:text-amber-400 transition-colors">{t('home')}</Link>
               </li>
               <li>
-                <Link to="/products" className="hover:text-amber-400 transition-colors">ផលិតផលទាំងអស់</Link>
+                <Link to="/products" className="hover:text-amber-400 transition-colors">{t('products')}</Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-amber-400 transition-colors">អំពីយើង</Link>
+                <Link to="/about" className="hover:text-amber-400 transition-colors">{t('about')}</Link>
               </li>
               <li>
-                <Link to="/contact" className="hover:text-amber-400 transition-colors">ទំនាក់ទំនង</Link>
+                <Link to="/contact" className="hover:text-amber-400 transition-colors">{t('contact')}</Link>
               </li>
             </ul>
           </div>
 
           {/* Social connections */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">តាមដានពួកយើង</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{language === 'kh' ? 'តាមដានពួកយើង' : 'Follow Us'}</h3>
             <div className="flex flex-col space-y-3 text-xs">
               {storeSettings?.Facebook && (
                 <a 
@@ -82,11 +84,11 @@ const Footer = () => {
 
           {/* Contacts */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">ទាក់ទងមកយើង</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t('contactUs')}</h3>
             <ul className="space-y-3 text-xs">
               <li className="flex items-start space-x-2.5">
                 <Phone className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                <span className="text-slate-400 leading-normal">{storeSettings?.Phone || '012 345 678'}</span>
+                <span className="text-slate-400 leading-normal font-sans">{storeSettings?.Phone || '012 345 678'}</span>
               </li>
               <li className="flex items-start space-x-2.5">
                 <MapPin className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
@@ -101,8 +103,8 @@ const Footer = () => {
 
         {/* Divider & Copyright */}
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 font-sans">
-          <p>© {new Date().getFullYear()} ZenTra Store. All Rights Reserved. Designed for Khmer Style.</p>
-          <p className="mt-2 md:mt-0 font-khmer">រក្សាសិទ្ធិគ្រប់យ៉ាងដោយ ZenTra Store</p>
+          <p>© {new Date().getFullYear()} ZenTra Store. {language === 'kh' ? 'រក្សាសិទ្ធិគ្រប់យ៉ាង។' : 'All Rights Reserved.'}</p>
+          <p className="mt-2 md:mt-0 font-khmer">{t('rightsReserved')}</p>
         </div>
       </div>
     </footer>

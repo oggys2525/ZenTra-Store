@@ -54,6 +54,17 @@ if DATABASE_URL:
                 pool_pre_ping=True,
                 pool_recycle=1800,
             )
+            
+            # Configure Unicode encoding/decoding settings for pyodbc connection
+            @event.listens_for(engine, "connect")
+            def set_mssql_encoding(dbapi_connection, connection_record):
+                try:
+                    import pyodbc
+                    dbapi_connection.setdecoding(pyodbc.SQL_CHAR, encoding='utf-8')
+                    dbapi_connection.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
+                    dbapi_connection.setencoding(encoding='utf-8')
+                except Exception as ex:
+                    logger.warning(f"Failed to set pyodbc encoding: {ex}")
             # Test connection
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))

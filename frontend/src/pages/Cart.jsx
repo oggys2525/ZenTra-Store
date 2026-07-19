@@ -1,11 +1,23 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getImageUrl } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+import { getImageUrl, authService } from '../services/api';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, cartTotal } = useCart();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+
+  const handleProceedToCheckout = (e) => {
+    e.preventDefault();
+    if (authService.isAuthenticated()) {
+      navigate('/checkout');
+    } else {
+      window.dispatchEvent(new Event('open_login_modal'));
+    }
+  };
   const shippingFee = cartTotal > 50 || cartTotal === 0 ? 0 : 1.50;
   const grandTotal = cartTotal + shippingFee;
 
@@ -16,14 +28,14 @@ const Cart = () => {
           <ShoppingBag className="h-12 w-12" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-lg font-bold text-slate-800">កន្ត្រកទិញទំនិញរបស់អ្នកនៅទទេ</h2>
-          <p className="text-xs text-slate-400">អ្នកមិនទាន់បានបន្ថែមផលិតផលណាមួយទៅក្នុងកន្ត្រកនៅឡើយទេ</p>
+          <h2 className="text-lg font-bold text-slate-800">{t('cartEmpty')}</h2>
+          <p className="text-xs text-slate-400">{t('cartEmptyDesc') || 'អ្នកមិនទាន់បានបន្ថែមផលិតផលណាមួយទៅក្នុងកន្ត្រកនៅឡើយទេ'}</p>
         </div>
         <Link
           to="/products"
           className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs px-6 py-3 rounded-full shadow-lg transition"
         >
-          <span>ទៅទិញទំនិញឥឡូវនេះ</span>
+          <span>{t('startShopping')}</span>
           <ArrowRight className="h-4.5 w-4.5" />
         </Link>
       </div>
@@ -32,7 +44,7 @@ const Cart = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-khmer">
-      <h1 className="text-xl font-bold text-slate-800 mb-8 border-b border-slate-100 pb-3">កន្ត្រកទិញទំនិញរបស់អ្នក</h1>
+      <h1 className="text-xl font-bold text-slate-800 mb-8 border-b border-slate-100 pb-3">{t('cartTitle')}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -125,40 +137,44 @@ const Cart = () => {
 
         {/* Right: Summary Order Summary */}
         <div className="bg-white p-6 rounded-3xl border border-slate-100 premium-shadow h-fit space-y-6">
-          <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3">សេចក្តីសង្ខេបការបញ្ជាទិញ</h3>
+          <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3">{t('summary')}</h3>
           
           <div className="space-y-3 text-xs">
             <div className="flex justify-between text-slate-500">
-              <span>តម្លៃសរុបផលិតផល</span>
+              <span>{t('subtotal')}</span>
               <span className="font-sans font-semibold">${cartTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-slate-500">
-              <span>សេវាដឹកជញ្ជូន</span>
+              <span>{t('deliveryFee')}</span>
               <span className="font-sans font-semibold">
-                {shippingFee === 0 ? 'ឥតគិតថ្លៃ' : `$${shippingFee.toFixed(2)}`}
+                {shippingFee === 0 ? t('freeDelivery') : `$${shippingFee.toFixed(2)}`}
               </span>
             </div>
             {shippingFee > 0 && (
-              <p className="text-[10px] text-amber-600">ថែមតែ ${(50 - cartTotal).toFixed(2)} ទៀតដើម្បីទទួលបានសេវាដឹកឥតគិតថ្លៃ!</p>
+              <p className="text-[10px] text-amber-600">
+                {t('language') === 'kh' 
+                  ? `ថែមតែ $${(50 - cartTotal).toFixed(2)} ទៀតដើម្បីទទួលបានសេវាដឹកឥតគិតថ្លៃ!` 
+                  : `Add $${(50 - cartTotal).toFixed(2)} more for FREE shipping!`}
+              </p>
             )}
             
             <div className="border-t border-slate-100 pt-3 flex justify-between text-slate-800 font-bold text-sm">
-              <span>តម្លៃសរុបចុងក្រោយ</span>
+              <span>{t('total')}</span>
               <span className="font-sans text-red-500">${grandTotal.toFixed(2)}</span>
             </div>
           </div>
 
-          <Link
-            to="/checkout"
-            className="w-full py-3.5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-2xl flex items-center justify-center space-x-2 text-xs font-bold hover:opacity-90 transition shadow-lg shadow-indigo-900/10 hover:scale-[1.01]"
+          <button
+            onClick={handleProceedToCheckout}
+            className="w-full py-3.5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-2xl flex items-center justify-center space-x-2 text-xs font-bold hover:opacity-90 transition shadow-lg shadow-indigo-900/10 hover:scale-[1.01] cursor-pointer"
           >
-            <span>បន្តទៅកាន់ការទូទាត់</span>
+            <span>{t('proceedToCheckout')}</span>
             <ArrowRight className="h-4 w-4" />
-          </Link>
+          </button>
           
           <div className="text-center">
             <Link to="/products" className="text-xs text-amber-600 hover:text-amber-700 font-bold">
-              បន្តទិញទំនិញបន្ថែម
+              {t('continueShopping')}
             </Link>
           </div>
         </div>

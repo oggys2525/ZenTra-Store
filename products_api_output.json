@@ -1,0 +1,142 @@
+[
+  {
+    "ProductName": "អាវយឺតកូនក្មេង រូបគំនូរគួរឱ្យស្រឡាញ់",
+    "CategoryID": 3,
+    "Description": "អាវយឺតដៃខ្លីកូនក្មេង រូបគំនូរតុក្កតាស្អាតៗ សាច់ក្រណាត់ទន់មិនរមាស់ស្បែក។",
+    "Price": "8.50",
+    "DiscountPrice": "6.00",
+    "Stock": 100,
+    "Size": "2Y,4Y,6Y,8Y",
+    "Color": "Yellow,Light Blue,Pink",
+    "Status": "Active",
+    "ProductID": 7,
+    "Image": "/uploads/products/kids_tshirt.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Kids",
+      "Status": "Active",
+      "CategoryID": 3
+    }
+  },
+  {
+    "ProductName": "កាតាបស្ពាយចំហៀងនារី ម៉ូដប្រណិត",
+    "CategoryID": 5,
+    "Description": "កាតាបស្បែកពិតប្រាកដ ទំហំល្មម ម៉ូដទាន់សម័យ ងាយស្រួលដាក់សម្ភារៈប្រចាំថ្ងៃ។",
+    "Price": "55.00",
+    "DiscountPrice": null,
+    "Stock": 12,
+    "Size": "One Size",
+    "Color": "Brown,Black,Cream",
+    "Status": "Active",
+    "ProductID": 6,
+    "Image": "/uploads/products/women_bag.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Accessories",
+      "Status": "Active",
+      "CategoryID": 5
+    }
+  },
+  {
+    "ProductName": "ស្បែកជើងប៉ាតាកីឡា ស្រាលស្រួលដើរ",
+    "CategoryID": 4,
+    "Description": "ស្បែកជើងប៉ាតាកីឡា ម៉ាកល្បី ទម្ងន់ស្រាល ជួយការពារជើង និងធ្វើឱ្យងាយស្រួលរត់ ឬដើរ។",
+    "Price": "45.00",
+    "DiscountPrice": "38.00",
+    "Stock": 15,
+    "Size": "39,40,41,42,43",
+    "Color": "White-Red,Grey,Black",
+    "Status": "Active",
+    "ProductID": 5,
+    "Image": "/uploads/products/sports_shoes.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Shoes",
+      "Status": "Active",
+      "CategoryID": 4
+    }
+  },
+  {
+    "ProductName": "អាវធំសម្រាប់នារី បែបការិយាល័យ",
+    "CategoryID": 2,
+    "Description": "អាវធំ Blazer សម្រាប់នារីការិយាល័យ រាងស្អាត សាច់ក្រណាត់ប្រណិត។",
+    "Price": "35.00",
+    "DiscountPrice": "29.99",
+    "Stock": 20,
+    "Size": "S,M,L,XL",
+    "Color": "Beige,Black,Pink",
+    "Status": "Active",
+    "ProductID": 4,
+    "Image": "/uploads/products/women_blazer.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Women",
+      "Status": "Active",
+      "CategoryID": 2
+    }
+  },
+  {
+    "ProductName": "ខោខូវប៊យបុរស រាងស្លីម",
+    "CategoryID": 1,
+    "Description": "ខោខូវប៊យជើងវែងបុរស សាច់យឺត ពណ៌ធ្យូង រាងស្លីមហ្វីត ស្អាតខ្លាំង។",
+    "Price": "30.00",
+    "DiscountPrice": null,
+    "Stock": 40,
+    "Size": "29,30,31,32,33,34",
+    "Color": "Blue Denim,Black Denim",
+    "Status": "Active",
+    "ProductID": 3,
+    "Image": "/uploads/products/mens_jeans.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Men",
+      "Status": "Active",
+      "CategoryID": 1
+    }
+  },
+  {
+    "ProductName": "រ៉ូបនារី ម៉ូដផ្កាស្អាតៗ",
+    "CategoryID": 2,
+    "Description": "រ៉ូបវែងម៉ូដផ្កាសម្រាប់នារី សមស្របសម្រាប់ដើរកម្សាន្ត ឬកម្មវិធីផ្សេងៗ។",
+    "Price": "25.00",
+    "DiscountPrice": "20.00",
+    "Stock": 30,
+    "Size": "S,M,L",
+    "Color": "Pink,Yellow",
+    "Status": "Active",
+    "ProductID": 2,
+    "Image": "/uploads/products/women_dress.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Women",
+      "Status": "Active",
+      "CategoryID": 2
+    }
+  },
+  {
+    "ProductName": "អាវយឺតបុរស ម៉ូដទាន់សម័យ",
+    "CategoryID": 1,
+    "Description": "អាវយឺតដៃខ្លីសម្រាប់បុរស សាច់ក្រណាត់កប្បាស ១០០% ទន់ត្រជាក់ និងស្រួលពាក់។",
+    "Price": "15.00",
+    "DiscountPrice": "12.00",
+    "Stock": 50,
+    "Size": "M,L,XL,XXL",
+    "Color": "Black,White,Navy Blue",
+    "Status": "Active",
+    "ProductID": 1,
+    "Image": "/uploads/products/mens_tshirt.jpg",
+    "CreatedDate": "2026-07-18T17:12:22.400000",
+    "UpdatedDate": "2026-07-18T17:12:22.400000",
+    "category": {
+      "CategoryName": "Men",
+      "Status": "Active",
+      "CategoryID": 1
+    }
+  }
+]
