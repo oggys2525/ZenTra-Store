@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Ticket, Calendar, DollarSign, Percent, ShieldAlert } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Ticket, Calendar, DollarSign, Percent, ShieldAlert, Search } from 'lucide-react';
 import { promocodeService } from '../services/api';
 
 const AdminPromoCodes = () => {
   const [promoCodes, setPromoCodes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [discountTypeFilter, setDiscountTypeFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   // Helper to format expiry date into native Khmer locale (km-KH)
   const formatExpiryDate = (dateStr) => {
@@ -124,6 +127,14 @@ const AdminPromoCodes = () => {
     }
   };
 
+  // Filter promo codes by search query and dropdown selections
+  const filteredPromoCodes = promoCodes.filter(promo => {
+    const matchesSearch = promo.Code.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = discountTypeFilter === 'All' || promo.DiscountType === discountTypeFilter;
+    const matchesStatus = statusFilter === 'All' || promo.Status === statusFilter;
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
   return (
     <div className="space-y-6 font-khmer min-h-screen p-2 md:p-6 transition-colors duration-200">
       
@@ -146,6 +157,49 @@ const AdminPromoCodes = () => {
         </button>
       </div>
 
+      {/* Search and Filters toolbar */}
+      <div className="bg-white p-4 rounded-3xl border border-slate-100 premium-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          {/* Search Input */}
+          <div className="relative md:col-span-6">
+            <input
+              type="text"
+              placeholder="ស្វែងរកតាមកូដបញ្ចុះតម្លៃ..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500 font-sans font-bold tracking-wider font-khmer"
+            />
+            <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+          </div>
+
+          {/* Discount Type Filter */}
+          <div className="md:col-span-3">
+            <select
+              value={discountTypeFilter}
+              onChange={(e) => setDiscountTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+            >
+              <option value="All">ប្រភេទបញ្ចុះតម្លៃទាំងអស់ (All Types)</option>
+              <option value="Percentage">Percentage (ភាគរយ %)</option>
+              <option value="Fixed">Fixed (ចំនួនទឹកប្រាក់ $)</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="md:col-span-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+            >
+              <option value="All">ស្ថានភាពទាំងអស់ (All Status)</option>
+              <option value="Active">សកម្ម (Active)</option>
+              <option value="Inactive">អសកម្ម (Inactive)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Main Grid Catalog */}
       <div className="bg-white rounded-3xl border border-slate-100 premium-shadow overflow-hidden">
         <div className="overflow-x-auto">
@@ -166,12 +220,12 @@ const AdminPromoCodes = () => {
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-slate-400">កំពុងផ្ទុកទិន្នន័យ...</td>
                 </tr>
-              ) : promoCodes.length === 0 ? (
+              ) : filteredPromoCodes.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-slate-400">មិនទាន់មានកូដបញ្ចុះតម្លៃនៅឡើយទេ</td>
                 </tr>
               ) : (
-                promoCodes.map((promo) => (
+                filteredPromoCodes.map((promo) => (
                   <tr key={promo.PromoID} className="hover:bg-slate-50/55 transition-colors">
                     <td className="py-3.5 px-6 font-bold text-slate-800 font-sans tracking-wide">
                       <span className="bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{promo.Code}</span>

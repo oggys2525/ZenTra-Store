@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, X, UserCheck, ShieldCheck } from 'lucide-react';
-import { userService, authService } from '../services/api';
+import { Plus, Edit, Trash2, Search, X, UserCheck, ShieldCheck, Camera, Upload } from 'lucide-react';
+import { userService, authService, getImageUrl } from '../services/api';
 
 const AdminUsers = () => {
  const [users, setUsers] = useState([]);
  const [loading, setLoading] = useState(true);
  const [searchQuery, setSearchQuery] = useState('');
+ 
+ // Custom Filter States
+ const [roleFilter, setRoleFilter] = useState('All');
+ const [statusFilter, setStatusFilter] = useState('All');
+ 
  const currentUser = authService.getCurrentUser();
 
  // Modal controls
  const [modalOpen, setModalOpen] = useState(false);
  const [editingUser, setEditingUser] = useState(null);
 
- // Form states
- const [username, setUsername] = useState('');
- const [fullName, setFullName] = useState('');
- const [email, setEmail] = useState('');
- const [phone, setPhone] = useState('');
- const [password, setPassword] = useState('');
- const [role, setRole] = useState('Customer'); // Admin, Staff, Customer
- const [status, setStatus] = useState('Active'); // Active, Blocked
+  // Form states
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('Customer'); // Admin, Staff, Customer
+  const [status, setStatus] = useState('Active'); // Active, Blocked
+  const [profileImage, setProfileImage] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
  const loadUsers = async () => {
  try {
@@ -37,29 +44,47 @@ const AdminUsers = () => {
  loadUsers();
  }, []);
 
- const openAddModal = () => {
- setEditingUser(null);
- setUsername('');
- setFullName('');
- setEmail('');
- setPhone('');
- setPassword('');
- setRole('Customer');
- setStatus('Active');
- setModalOpen(true);
- };
+  const openAddModal = () => {
+    setEditingUser(null);
+    setUsername('');
+    setFullName('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setRole('Customer');
+    setStatus('Active');
+    setProfileImage('');
+    setModalOpen(true);
+  };
 
- const openEditModal = (u) => {
- setEditingUser(u);
- setUsername(u.Username);
- setFullName(u.FullName);
- setEmail(u.Email || '');
- setPhone(u.Phone || '');
- setPassword(''); // Leave password empty by default
- setRole(u.Role);
- setStatus(u.Status);
- setModalOpen(true);
- };
+  const openEditModal = (u) => {
+    setEditingUser(u);
+    setUsername(u.Username);
+    setFullName(u.FullName);
+    setEmail(u.Email || '');
+    setPhone(u.Phone || '');
+    setPassword(''); // Leave password empty by default
+    setRole(u.Role);
+    setStatus(u.Status);
+    setProfileImage(u.ProfileImage || '');
+    setModalOpen(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const res = await userService.uploadProfileImage(file);
+      setProfileImage(res.image_path);
+    } catch (err) {
+      console.error(err);
+      alert("មិនអាចផ្ទុករូបភាពឡើងបានទេ។");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
  const handleSubmit = async (e) => {
  e.preventDefault();
@@ -68,14 +93,15 @@ const AdminUsers = () => {
  return;
  }
 
- const payload = {
- Username: username,
- FullName: fullName,
- Email: email || null,
- Phone: phone || null,
- Role: role,
- Status: status
- };
+  const payload = {
+    Username: username,
+    FullName: fullName,
+    Email: email || null,
+    Phone: phone || null,
+    Role: role,
+    Status: status,
+    ProfileImage: profileImage || null
+  };
 
  if (password) {
  payload.Password = password;
@@ -115,10 +141,19 @@ const AdminUsers = () => {
  }
  };
 
- const filteredUsers = users.filter(u => 
- u.FullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
- u.Username.toLowerCase().includes(searchQuery.toLowerCase())
- );
+  // Filter users by search query and dropdown selections
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = 
+      u.FullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.Username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.Email && u.Email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.Phone && u.Phone.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesRole = roleFilter === 'All' || u.Role === roleFilter;
+    const matchesStatus = statusFilter === 'All' || u.Status === statusFilter;
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
  return (
  <div className="space-y-6 font-khmer">
@@ -138,19 +173,49 @@ const AdminUsers = () => {
  </button>
  </div>
 
- {/* Toolbar */}
- <div className="bg-white p-4 rounded-2xl premium-shadow">
- <div className="relative max-w-sm">
- <input
- type="text"
- placeholder="ស្វែងរកតាមគណនី ឬឈ្មោះពេញ..."
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500"
- />
- <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
- </div>
- </div>
+  {/* Toolbar */}
+  <div className="bg-white p-4 rounded-2xl premium-shadow">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+      {/* Search Input */}
+      <div className="relative md:col-span-6">
+        <input
+          type="text"
+          placeholder="ស្វែងរកតាមគណនី ឈ្មោះពេញ អ៊ីមែល ឬទូរស័ព្ទ..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500 font-khmer"
+        />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+      </div>
+
+      {/* Role Filter */}
+      <div className="md:col-span-3">
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+        >
+          <option value="All">គ្រប់តួនាទីទាំងអស់ (All Roles)</option>
+          <option value="Admin">Admin (អ្នកគ្រប់គ្រង)</option>
+          <option value="Staff">Staff (បុគ្គលិក)</option>
+          <option value="Customer">Customer (អតិថិជន)</option>
+        </select>
+      </div>
+
+      {/* Status Filter */}
+      <div className="md:col-span-3">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+        >
+          <option value="All">ស្ថានភាពគណនីទាំងអស់ (All Status)</option>
+          <option value="Active">សកម្ម (Active)</option>
+          <option value="Blocked">បិទចោល (Blocked)</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
  {/* Table */}
  {loading ? (
@@ -181,9 +246,18 @@ const AdminUsers = () => {
  {filteredUsers.map((u) => (
  <tr key={u.UserID} className="hover:bg-slate-50/50 transition-colors">
  <td className="py-4 px-6 font-semibold flex items-center space-x-2">
- <div className="h-7 w-7 rounded-full bg-indigo-50 border border-indigo-150 flex items-center justify-center font-bold text-indigo-650 text-[10px] uppercase font-sans">
- {u.Username.substring(0, 2)}
- </div>
+  <div className="h-7 w-7 rounded-full bg-indigo-50 border border-indigo-150 flex items-center justify-center font-bold text-indigo-650 text-[10px] uppercase font-sans overflow-hidden shrink-0">
+    {u.ProfileImage ? (
+      <img
+        src={getImageUrl(u.ProfileImage)}
+        alt={u.FullName}
+        className="h-full w-full object-cover"
+        onError={(e) => { e.target.src = '/logo.png'; }}
+      />
+    ) : (
+      u.Username.substring(0, 2)
+    )}
+  </div>
  <span>{u.FullName}</span>
  </td>
  <td className="py-4 px-6 font-sans font-bold text-slate-550">{u.Username}</td>
@@ -258,6 +332,48 @@ const AdminUsers = () => {
 
  <form onSubmit={handleSubmit} className="space-y-4">
  
+ {/* Profile Image Upload */}
+ <div className="flex flex-col items-center justify-center space-y-1.5 pb-2">
+    <div className="relative h-20 w-20 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden group shadow-xs">
+      {profileImage ? (
+        <img
+          src={getImageUrl(profileImage)}
+          alt="Profile Preview"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center text-slate-400">
+          <Camera className="h-6 w-6" />
+          <span className="text-[9px] mt-0.5 font-bold">រូបថត</span>
+        </div>
+      )}
+      {uploadingImage && (
+        <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center text-white text-[9px] font-bold">
+          កំពុងផ្ទុក...
+        </div>
+      )}
+      <label className="absolute inset-0 cursor-pointer opacity-0 hover:opacity-100 bg-slate-900/60 flex flex-col items-center justify-center text-white text-[9px] font-bold transition duration-200">
+        <Upload className="h-4 w-4 mb-0.5" />
+        <span>ប្តូររូបថត</span>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="hidden"
+        />
+      </label>
+    </div>
+    {profileImage && (
+      <button
+        type="button"
+        onClick={() => setProfileImage('')}
+        className="text-[9px] text-red-500 font-bold hover:underline"
+      >
+        លុបរូបថត
+      </button>
+    )}
+  </div>
+
  {/* Full Name */}
  <div className="space-y-1">
  <label className="text-xs font-semibold text-slate-500">ឈ្មោះពេញ (Full Name) *</label>

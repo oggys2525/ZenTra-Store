@@ -97,13 +97,7 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Helper Dev credentials */}
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-[10px] text-slate-500 leading-normal">
-          <span className="font-bold text-slate-700 block">គណនីសាកល្បងសម្រាប់ Developer៖</span>
-          <p>• គណនី Admin: <strong>admin</strong> / លេខសម្ងាត់: <strong>admin123</strong></p>
-          <p>• គណនី Staff: <strong>staff</strong> / លេខសម្ងាត់: <strong>admin123</strong></p>
-          <p>• គណនី Customer: <strong>customer</strong> / លេខសម្ងាត់: <strong>admin123</strong></p>
-        </div>
+
 
         {/* Footer Link */}
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-50">

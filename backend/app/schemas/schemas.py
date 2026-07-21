@@ -12,6 +12,8 @@ class Token(BaseModel):
     role: str
     fullname: str
     username: str
+    profile_image: Optional[str] = None
+    userid: int
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -80,6 +82,7 @@ class UserBase(BaseModel):
     Phone: Optional[str] = None
     Role: str = "Customer" # Admin, Staff, Customer
     Status: str = "Active"
+    ProfileImage: Optional[str] = None
 
 class UserCreate(UserBase):
     Password: str
@@ -91,6 +94,7 @@ class UserUpdate(BaseModel):
     Role: Optional[str] = None
     Status: Optional[str] = None
     Password: Optional[str] = None
+    ProfileImage: Optional[str] = None
 
 class User(UserBase):
     UserID: int
@@ -195,7 +199,7 @@ class PromoCodeUpdate(BaseModel):
 
 class PromoCode(PromoCodeBase):
     PromoID: int
-    CreatedDate: datetime
+    CreatedDate: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

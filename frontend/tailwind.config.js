@@ -35,8 +35,9 @@ export default {
         }
       },
       fontFamily: {
-        khmer: ['Noto Sans Khmer', 'sans-serif'],
-        sans: ['Inter', 'Noto Sans Khmer', 'sans-serif'],
+        khmer: ['Google Sans', 'Product Sans', 'Inter', 'Battambang', 'sans-serif'],
+        kulen: ['Google Sans', 'Product Sans', 'Inter', 'Kulen', 'sans-serif'],
+        sans: ['Google Sans', 'Product Sans', 'Inter', 'Battambang', 'sans-serif'],
       }
     },
   },

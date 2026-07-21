@@ -23,6 +23,7 @@ class User(Base):
     Phone = Column(String(50), nullable=True)
     Role = Column(String(50), default="Customer") # Admin, Staff, Customer
     Status = Column(String(50), default="Active") # Active, Blocked
+    ProfileImage = Column(String(500), nullable=True)
     CreatedDate = Column(DateTime, default=datetime.utcnow)
 
     orders = relationship("Order", back_populates="user")

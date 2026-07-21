@@ -27,19 +27,24 @@ const SafeImage = ({ src, alt, className }) => {
 };
 
 const AdminProducts = () => {
- const [products, setProducts] = useState([]);
- const [categories, setCategories] = useState([]);
- const [loading, setLoading] = useState(true);
- const [searchQuery, setSearchQuery] = useState('');
- 
- // Pagination States
- const [currentPage, setCurrentPage] = useState(1);
- const itemsPerPage = 8;
- 
- // Reset page to 1 when search query changes
- useEffect(() => {
-   setCurrentPage(1);
- }, [searchQuery]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Custom Filter States
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [stockFilter, setStockFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  
+  // Reset page to 1 when search query or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, stockFilter, statusFilter]);
  
  // Modal States
  const [modalOpen, setModalOpen] = useState(false);
@@ -209,10 +214,26 @@ const AdminProducts = () => {
  }
  };
 
- // Filter products by search query
- const filteredProducts = products.filter(p => 
- p.ProductName.toLowerCase().includes(searchQuery.toLowerCase())
- );
+  // Filter products by search query and dropdown selections
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.Description && p.Description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesCategory = categoryFilter === 'All' || p.CategoryID === parseInt(categoryFilter);
+
+    let matchesStock = true;
+    if (stockFilter === 'InStock') {
+      matchesStock = p.Stock > 5;
+    } else if (stockFilter === 'LowStock') {
+      matchesStock = p.Stock > 0 && p.Stock <= 5;
+    } else if (stockFilter === 'OutOfStock') {
+      matchesStock = p.Stock === 0;
+    }
+
+    const matchesStatus = statusFilter === 'All' || p.Status === statusFilter;
+
+    return matchesSearch && matchesCategory && matchesStock && matchesStatus;
+  });
 
  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
  const indexOfLastItem = currentPage * itemsPerPage;
@@ -272,19 +293,65 @@ const AdminProducts = () => {
  </div>
  </div>
 
- {/* Filter and Search Bar */}
- <div className="bg-white p-4 rounded-3xl premium-shadow">
- <div className="relative">
- <input
- type="text"
- placeholder="ស្វែងរកផលិតផលតាមឈ្មោះ..."
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-amber-500"
- />
- <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
- </div>
- </div>
+  {/* Filter and Search Bar */}
+  <div className="bg-white p-4 rounded-3xl premium-shadow">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+      {/* Search Input */}
+      <div className="relative lg:col-span-4">
+        <input
+          type="text"
+          placeholder="ស្វែងរកផលិតផលតាមឈ្មោះ ឬការពិពណ៌នា..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-amber-500 font-khmer"
+        />
+        <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+      </div>
+
+      {/* Category Filter */}
+      <div className="lg:col-span-3">
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+        >
+          <option value="All">គ្រប់ប្រភេទទាំងអស់ (All Categories)</option>
+          {categories.map((cat) => (
+            <option key={cat.CategoryID} value={cat.CategoryID}>
+              {cat.CategoryName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Stock Filter */}
+      <div className="lg:col-span-3">
+        <select
+          value={stockFilter}
+          onChange={(e) => setStockFilter(e.target.value)}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+        >
+          <option value="All">ស្ថានភាពស្តុកទាំងអស់ (All Stock)</option>
+          <option value="InStock">មានក្នុងស្តុក (&gt; ៥) (In Stock)</option>
+          <option value="LowStock">ស្តុកទាប (១-៥) (Low Stock)</option>
+          <option value="OutOfStock">អស់ពីស្តុក (Out of Stock)</option>
+        </select>
+      </div>
+
+      {/* Status Filter */}
+      <div className="lg:col-span-2">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+        >
+          <option value="All">ស្ថានភាពទាំងអស់ (All Status)</option>
+          <option value="Active">សកម្ម (Active)</option>
+          <option value="Inactive">អសកម្ម (Inactive)</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
  {/* Catalog Listing Table */}
  {loading ? (

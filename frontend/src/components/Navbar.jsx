@@ -3,11 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ShoppingCart, User, LogOut, Menu, X, Search, 
   ShieldAlert, Sun, Moon, Monitor, Home as HomeIcon, 
-  ShoppingBag, Info, Mail, Globe, Lock, Eye, EyeOff 
+  ShoppingBag, Info, Mail, Globe, Lock, Eye, EyeOff,
+  Camera, Upload 
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
-import { authService, settingsService, categoryService, getImageUrl } from '../services/api';
+import { authService, settingsService, categoryService, getImageUrl, userService } from '../services/api';
 
 const Navbar = () => {
   const { cartCount } = useCart();
@@ -118,8 +119,30 @@ const Navbar = () => {
   }, []);
 
   useEffect(() => {
+    const fetchFreshProfile = async () => {
+      if (!authService.isAuthenticated()) return;
+      try {
+        const profile = await userService.getMyProfile();
+        const localUser = JSON.parse(localStorage.getItem('zentra_user'));
+        if (localUser) {
+          const updatedUser = {
+            ...localUser,
+            fullname: profile.FullName,
+            profile_image: profile.ProfileImage
+          };
+          localStorage.setItem('zentra_user', JSON.stringify(updatedUser));
+          setCurrentUser(updatedUser);
+        }
+      } catch (err) {
+        console.error("Failed to load fresh user profile:", err);
+      }
+    };
+
+    fetchFreshProfile();
+
     const handleAuthChange = () => {
       setCurrentUser(authService.getCurrentUser());
+      fetchFreshProfile();
     };
     const handleOpenLogin = () => {
       setLoginModalOpen(true);
@@ -154,6 +177,33 @@ const Navbar = () => {
   const handleLogout = () => {
     authService.logout();
     navigate('/');
+  };
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      const res = await userService.uploadProfileImage(file);
+      const updatedUser = await userService.updateMyProfile({ ProfileImage: res.image_path });
+      
+      const localUser = JSON.parse(localStorage.getItem('zentra_user'));
+      const newUserData = {
+        ...localUser,
+        profile_image: updatedUser.ProfileImage
+      };
+      localStorage.setItem('zentra_user', JSON.stringify(newUserData));
+      setCurrentUser(newUserData);
+      window.dispatchEvent(new Event('auth_change'));
+    } catch (err) {
+      console.error(err);
+      alert("មិនអាចផ្ទុករូបភាពឡើងបានទេ។");
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleSearchSubmit = (e) => {
@@ -415,8 +465,17 @@ const Navbar = () => {
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">
-                    {currentUser.fullname.substring(0, 2)}
+                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm overflow-hidden shrink-0 border border-amber-250">
+                    {currentUser.profile_image ? (
+                      <img
+                        src={getImageUrl(currentUser.profile_image)}
+                        alt={currentUser.fullname}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.src = '/logo.png'; }}
+                      />
+                    ) : (
+                      currentUser.fullname.substring(0, 2)
+                    )}
                   </div>
                   <span className="text-xs font-bold text-slate-700 font-khmer">{currentUser.fullname}</span>
                 </button>
@@ -436,10 +495,44 @@ const Navbar = () => {
                 <div className="absolute right-0 mt-2.5 w-64 rounded-3xl bg-white p-4.5 shadow-2xl border border-slate-100 z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-slate-700 font-khmer">
                   {/* Account detail segment */}
                   {currentUser ? (
-                    <div className="pb-3 border-b border-slate-100 mb-3 text-left">
-                      <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">គណនីសកម្ម</span>
-                      <h4 className="text-xs font-bold text-slate-800 mt-1">{currentUser.fullname}</h4>
-                      <span className="text-[9px] text-slate-400 font-semibold uppercase font-sans mt-0.5 block">{currentUser.role} Mode</span>
+                    <div className="pb-3 border-b border-slate-100 mb-3 text-left flex items-center space-x-3">
+                      {/* Interactive Avatar Upload */}
+                      <div className="relative group w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50 flex items-center justify-center">
+                        {currentUser.profile_image ? (
+                          <img
+                            src={getImageUrl(currentUser.profile_image)}
+                            alt={currentUser.fullname}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.target.src = '/logo.png'; }}
+                          />
+                        ) : (
+                          <div className="text-xs font-bold text-slate-650">
+                            {currentUser.fullname.substring(0, 2)}
+                          </div>
+                        )}
+                        
+                        {uploadingAvatar && (
+                          <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center text-white text-[8px] font-bold">
+                            ...
+                          </div>
+                        )}
+
+                        <label className="absolute inset-0 cursor-pointer opacity-0 group-hover:opacity-100 bg-slate-900/60 flex items-center justify-center text-white transition-opacity duration-200" title="ប្តូររូបថត / Change Photo">
+                          <Camera className="w-4 h-4" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="min-w-0 flex-grow">
+                        <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold block">គណនីសកម្ម</span>
+                        <h4 className="text-xs font-bold text-slate-800 mt-0.5 truncate">{currentUser.fullname}</h4>
+                        <span className="text-[8px] text-slate-450 font-semibold uppercase font-sans mt-0.5 block">{currentUser.role} Mode</span>
+                      </div>
                     </div>
                   ) : (
                     <div className="pb-3 border-b border-slate-100 mb-3 text-left">
@@ -596,6 +689,7 @@ const Navbar = () => {
               <Link to="/products" className={getTabClass('/products', 'products')}>{t('products')}</Link>
               <Link to="/about" className={getTabClass('/about', 'exact')}>{t('about')}</Link>
               <Link to="/contact" className={getTabClass('/contact', 'exact')}>{t('contact')}</Link>
+              <Link to="/orders" className={getTabClass('/orders', 'exact')}>{language === 'kh' ? 'តាមដានការបញ្ជាទិញ' : 'Track Order'}</Link>
             </div>
           </div>
         </div>
@@ -680,6 +774,14 @@ const Navbar = () => {
               >
                 <Mail className="h-4 w-4 text-amber-500" />
                 <span>{t('contact')}</span>
+              </Link>
+              <Link 
+                to="/orders" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-3 text-xs font-semibold rounded-xl bg-slate-50 text-slate-700 hover:text-amber-600 hover:bg-amber-50/30 border border-slate-105 transition-all"
+              >
+                <ShoppingBag className="h-4 w-4 text-amber-500" />
+                <span>{language === 'kh' ? 'តាមដានការបញ្ជាទិញ' : 'Track Order'}</span>
               </Link>
             </div>
 

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User, Trash2, Clock, ExternalLink, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
-import { orderService, settingsService, authService, promocodeService } from '../services/api';
+import { orderService, settingsService, authService, promocodeService, getImageUrl } from '../services/api';
 
 const Checkout = () => {
-  const { cart, cartTotal, clearCart } = useCart();
+  const { cart, cartTotal, clearCart, removeFromCart } = useCart();
   const { language } = useLanguage();
   const navigate = useNavigate();
 
@@ -131,77 +131,113 @@ const Checkout = () => {
  }
  };
 
- // If order is completed successfully, render Success Screen
- if (orderSuccess) {
- return (
- <div className="max-w-2xl mx-auto px-4 py-16 font-khmer space-y-8 animate-in fade-in duration-300">
- <div className="bg-white p-8 rounded-3xl border border-slate-100 premium-shadow text-center space-y-6">
- <div className="inline-flex p-4 bg-emerald-50 rounded-full text-emerald-500">
- <CheckCircle2 className="h-14 w-14" />
- </div>
- 
- <div className="space-y-2">
- <h2 className="text-xl font-bold text-slate-800">{language === 'kh' ? 'បញ្ជាទិញជោគជ័យ!' : 'Order Successful!'}</h2>
- <p className="text-xs text-slate-400">{language === 'kh' ? 'អរគុណសម្រាប់ការបញ្ជាទិញ!' : 'Thank you for your order!'}</p>
- <p className="text-sm font-bold text-slate-700 pt-2">{language === 'kh' ? 'លេខកូដបញ្ជាទិញ' : 'Order ID'}៖ #{orderSuccess.OrderID}</p>
- </div>
+  // If order is completed successfully, render Success Screen Compact Scrollable Modal Card
+  if (orderSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 font-khmer">
+        <div className="relative bg-white rounded-3xl w-[380px] h-[530px] max-h-[85vh] p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-slate-700 text-center border border-slate-100 flex flex-col justify-between overflow-hidden">
+          
+          {/* Scrollable Content Container */}
+          <div className="flex-grow overflow-y-auto space-y-4 pr-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            
+            {/* Waiting Confirmation Icon & Title */}
+            <div className="space-y-2.5">
+              <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center animate-bounce">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-base font-bold text-slate-800 leading-tight">
+                  {language === 'kh' ? 'ការបញ្ជាទិញកំពុងរង់ចាំការបញ្ជាក់' : 'Order Pending Confirmation'}
+                </h2>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-50 border border-amber-100 text-amber-600 animate-pulse">
+                  {language === 'kh' ? 'ស្ថានភាព៖ រង់ចាំបុគ្គលិកបញ្ជាក់' : 'Status: Waiting Confirmation'}
+                </span>
+              </div>
+            </div>
 
- {/* Payment Instructions for KHQR */}
- {paymentMethod === 'KHQR' && (
- <div className="bg-slate-50 border border-slate-200/50 p-6 rounded-2xl space-y-4 max-w-sm mx-auto">
- <div className="flex items-center justify-center space-x-2 text-red-500 font-bold text-sm">
- <QrCode className="h-5 w-5" />
- <span>ស្កែនទូទាត់ប្រាក់រហ័ស (KHQR)</span>
- </div>
- 
- {/* Beautiful Mock QR Code Display */}
- <div className="bg-white p-3 rounded-xl border border-slate-200 inline-block">
- <div className="w-48 h-48 bg-slate-100 flex items-center justify-center rounded-lg relative overflow-hidden border border-dashed border-slate-300">
- {/* Visual QR Code Mock layout */}
- <div className="absolute inset-4 bg-slate-200 rounded flex flex-wrap p-1">
- {[...Array(9)].map((_, i) => (
- <div key={i} className={`w-1/3 h-1/3 p-1`}>
- <div className={`w-full h-full ${i % 2 === 0 ? 'bg-slate-800' : 'bg-transparent'} rounded-xs`}></div>
- </div>
- ))}
- </div>
- <div className="absolute inset-0 bg-radial-gradient flex items-center justify-center">
- <span className="bg-red-500 text-white font-bold text-[8px] px-1.5 py-0.5 rounded shadow-sm">
- Bakong KHQR
- </span>
- </div>
- </div>
- </div>
+            {/* QR Code in Middle Center */}
+            {orderSuccess.PaymentMethod === 'KHQR' && (
+              <div className="bg-red-50/40 border border-red-100/60 p-3 rounded-2xl space-y-2 flex flex-col items-center justify-center">
+                <div className="flex items-center justify-center space-x-1.5 text-red-500 font-bold text-[9px] uppercase tracking-wider">
+                  <QrCode className="h-4 w-4" />
+                  <span>ស្កែនទូទាត់ប្រាក់រហ័ស (Bakong KHQR)</span>
+                </div>
+                
+                {/* Visual QR Code Display */}
+                <div className="bg-white p-2 rounded-xl border border-slate-200/80 shadow-xs inline-block">
+                  <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-lg relative overflow-hidden border border-dashed border-slate-300">
+                    <div className="absolute inset-2 bg-slate-100 rounded flex flex-wrap p-0.5">
+                      {[...Array(9)].map((_, i) => (
+                        <div key={i} className="w-1/3 h-1/3 p-0.5">
+                          <div className={`w-full h-full ${i % 2 === 0 ? 'bg-slate-800' : 'bg-transparent'} rounded-xs`}></div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 bg-radial-gradient flex items-center justify-center">
+                      <span className="bg-red-500 text-white font-extrabold text-[7px] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-tight scale-90">
+                        Bakong
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Total amount helper */}
+                <span className="text-[10px] text-slate-500">
+                  {language === 'kh' ? 'ទឹកប្រាក់ត្រូវស្កែន៖' : 'Scan Amount:'} <strong className="text-red-500 text-xs font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
+                </span>
+              </div>
+            )}
 
- <div className="text-left text-[10px] text-slate-500 leading-normal space-y-1">
- <p>១. សូមបើកកម្មវិធីធនាគាររបស់អ្នក (ABA, Wing, ACLEDA, etc.)</p>
- <p>២. ស្កែនរូបភាព QR កូដខាងលើដើម្បីផ្ទេរប្រាក់</p>
- <p>៣. ចំនួនទឹកប្រាក់ទូទាត់៖ <strong className="text-red-500 font-sans text-xs">${grandTotal.toFixed(2)}</strong></p>
- </div>
- </div>
- )}
+            {/* Quick Summary Grid */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2.5 text-[11px]">
+              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខកូដបញ្ជាទិញ៖' : 'Order ID:'}</span>
+                <strong className="text-slate-800 font-mono">#{orderSuccess.OrderID}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'អតិថិជន៖' : 'Customer Name:'}</span>
+                <span className="text-slate-700 font-bold">{orderSuccess.CustomerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខទូរស័ព្ទ៖' : 'Phone:'}</span>
+                <span className="text-slate-700 font-medium font-sans">{orderSuccess.CustomerPhone}</span>
+              </div>
+              <div className="flex justify-between items-start">
+                <span className="text-slate-400 font-semibold flex-shrink-0 mr-4">{language === 'kh' ? 'អាសយដ្ឋាន៖' : 'Address:'}</span>
+                <span className="text-slate-700 text-right line-clamp-2 leading-tight">{orderSuccess.CustomerAddress}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200/60 pt-1.5 text-xs">
+                <span className="font-bold text-slate-600">{language === 'kh' ? 'តម្លៃសរុបទាំងអស់៖' : 'Grand Total:'}</span>
+                <strong className="text-red-500 font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
+              </div>
+            </div>
 
- <div className="border-t border-slate-100 pt-6 space-y-4 text-xs text-slate-600 text-left">
- <h4 className="font-bold text-slate-800 mb-2">{language === 'kh' ? 'ព័ត៌មានដឹកជញ្ជូន៖' : 'Shipping Info:'}</h4>
- <p>{language === 'kh' ? 'អតិថិជន៖' : 'Customer:'} <strong>{orderSuccess.CustomerName}</strong></p>
- <p>{language === 'kh' ? 'លេខទូរស័ព្ទ៖' : 'Phone:'} <strong>{orderSuccess.CustomerPhone}</strong></p>
- <p>{language === 'kh' ? 'អាសយដ្ឋាន៖' : 'Address:'} <strong>{orderSuccess.CustomerAddress}</strong></p>
- <p>{language === 'kh' ? 'វិធីទូទាត់៖' : 'Payment Method:'} <strong>{orderSuccess.PaymentMethod === 'COD' ? (language === 'kh' ? 'ប្រគល់ប្រាក់ពេលទំនិញដល់ដៃ (COD)' : 'Cash on Delivery (COD)') : (language === 'kh' ? 'ស្កែន KHQR' : 'Scan KHQR')}</strong></p>
- </div>
+          </div>
 
- <div className="pt-4">
- <Link
- to="/products"
- className="inline-flex items-center space-x-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-full transition shadow-lg"
- >
- <span>{language === 'kh' ? 'បន្តការទិញទំនិញ' : 'Continue Shopping'}</span>
- <ArrowRight className="h-4 w-4" />
- </Link>
- </div>
- </div>
- </div>
- );
- }
+          {/* Fixed Footer Action Buttons at Bottom */}
+          <div className="space-y-2 pt-3 border-t border-slate-100 flex-shrink-0">
+            <Link 
+              to={`/orders?orderId=${orderSuccess.OrderID}`}
+              onClick={() => setOrderSuccess(null)}
+              className="w-full py-2.5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>{language === 'kh' ? 'មើលវិក្កយបត្របញ្ជាទិញ' : 'View Order Invoice'}</span>
+            </Link>
+            
+            <button 
+              type="button"
+              onClick={() => { setOrderSuccess(null); navigate('/products'); }}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer select-none"
+            >
+              {language === 'kh' ? 'បន្តការទិញទំនិញ' : 'Continue Shopping'}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
  return (
  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-khmer">
@@ -324,24 +360,55 @@ const Checkout = () => {
  <div className="space-y-6">
  <div className="bg-white p-6 rounded-3xl border border-slate-100 premium-shadow space-y-4">
  <h3 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3">ពិនិត្យការបញ្ជាទិញ</h3>
- 
- {/* Products small list */}
- <div className="max-h-60 overflow-y-auto space-y-3 pr-1">
- {cart.map((item) => {
- const price = item.DiscountPrice !== null ? parseFloat(item.DiscountPrice) : parseFloat(item.Price);
- return (
- <div key={`${item.ProductID}-${item.selectedSize}-${item.selectedColor}`} className="flex justify-between items-center text-xs gap-3">
- <span className="text-slate-600 truncate flex-grow">
- {item.ProductName} <strong className="text-slate-400 font-sans">x{item.Quantity}</strong>
- {(item.selectedSize || item.selectedColor) && (
- <span className="block text-[9px] text-slate-400 mt-0.5">({item.selectedSize} / {item.selectedColor})</span>
- )}
- </span>
- <span className="font-sans font-semibold text-slate-800">${(price * item.Quantity).toFixed(2)}</span>
- </div>
- );
- })}
- </div>
+  {/* Products small list */}
+  <div className="max-h-72 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+    {cart.map((item) => {
+      const price = item.DiscountPrice !== null ? parseFloat(item.DiscountPrice) : parseFloat(item.Price);
+      const firstImage = item.Image ? item.Image.split(',')[0] : '';
+      const imageUrl = getImageUrl(firstImage);
+      return (
+        <div key={`${item.ProductID}-${item.selectedSize}-${item.selectedColor}`} className="flex items-center justify-between text-xs gap-3 p-2 bg-slate-50 hover:bg-slate-100/50 rounded-2xl border border-slate-100 transition duration-200">
+          <Link to={`/product/${item.ProductID}`} className="relative block w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200/60 flex-shrink-0 hover:scale-105 transition duration-200">
+            <img 
+              src={imageUrl} 
+              alt={item.ProductName} 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/logo.png';
+              }}
+            />
+          </Link>
+          <div className="flex-grow min-w-0">
+            <Link to={`/product/${item.ProductID}`} className="font-bold text-slate-700 hover:text-amber-600 transition block truncate">
+              {item.ProductName}
+            </Link>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-slate-400 font-sans">x{item.Quantity}</span>
+              {(item.selectedSize || item.selectedColor) && (
+                <span className="text-[9px] text-slate-400">({item.selectedSize} / {item.selectedColor})</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="font-sans font-semibold text-slate-800">${(price * item.Quantity).toFixed(2)}</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(language === 'kh' ? 'តើអ្នកពិតជាចង់លុបផលិតផលនេះចេញមែនទេ?' : 'Are you sure you want to remove this item?')) {
+                  removeFromCart(item.ProductID, item.selectedSize, item.selectedColor);
+                }
+              }}
+              className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition duration-200 cursor-pointer"
+              title={language === 'kh' ? 'លុបចេញ' : 'Remove item'}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
 
   {/* Promo Code Input */}
   <div className="border-t border-slate-100 pt-4 pb-2 space-y-2 text-xs">

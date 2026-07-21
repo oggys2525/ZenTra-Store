@@ -63,5 +63,7 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "role": user.Role,
         "fullname": user.FullName,
-        "username": user.Username
+        "username": user.Username,
+        "profile_image": user.ProfileImage,
+        "userid": user.UserID
     }

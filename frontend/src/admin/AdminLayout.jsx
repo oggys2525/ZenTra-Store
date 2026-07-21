@@ -4,7 +4,7 @@ import {
  LayoutDashboard, ShoppingBag, FolderKanban, 
  ShoppingCart, Users, Settings, LogOut, Store, Menu, X, Bell, Ticket 
 } from 'lucide-react';
-import { authService } from '../services/api';
+import { authService, getImageUrl, userService } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
 const AdminLayout = () => {
@@ -25,6 +25,39 @@ const AdminLayout = () => {
  navigate('/login');
  }
  }, [currentUser, navigate]);
+
+ // Sync current user state on auth changes
+ useEffect(() => {
+    const fetchFreshProfile = async () => {
+      if (!authService.isAuthenticated()) return;
+      try {
+        const profile = await userService.getMyProfile();
+        const localUser = JSON.parse(localStorage.getItem('zentra_user'));
+        if (localUser) {
+          const updatedUser = {
+            ...localUser,
+            fullname: profile.FullName,
+            profile_image: profile.ProfileImage
+          };
+          localStorage.setItem('zentra_user', JSON.stringify(updatedUser));
+          setCurrentUser(updatedUser);
+        }
+      } catch (err) {
+        console.error("Failed to load fresh user profile in admin:", err);
+      }
+    };
+
+    fetchFreshProfile();
+
+    const handleAuthChange = () => {
+      setCurrentUser(authService.getCurrentUser());
+      fetchFreshProfile();
+    };
+    window.addEventListener('auth_change', handleAuthChange);
+    return () => {
+      window.removeEventListener('auth_change', handleAuthChange);
+    };
+  }, []);
 
  // WebSocket Live alerts listener
  useEffect(() => {
@@ -59,6 +92,7 @@ const AdminLayout = () => {
  {
  id: Date.now(),
  type: data.type,
+ orderId: data.data?.order_id,
  message: userMsg,
  time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
  unread: true
@@ -106,10 +140,14 @@ const AdminLayout = () => {
  return () => document.removeEventListener('click', handleOutsideClick);
  }, [notifDropdownOpen, profileDropdownOpen]);
 
- const handleLogout = () => {
- authService.logout();
- navigate('/login');
- };
+  const handleLogout = () => {
+    navigate('/');
+    setTimeout(() => {
+      authService.logout();
+      // Trigger login modal pop-up on the storefront
+      window.dispatchEvent(new Event('open_login_modal'));
+    }, 100);
+  };
 
  const navItems = [
  { name: 'ទិន្នន័យទូទៅ (Dashboard)', path: '/admin', icon: LayoutDashboard },
@@ -165,15 +203,24 @@ const AdminLayout = () => {
 
  {/* User Info & Actions */}
  <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex flex-col space-y-4">
- <div className="flex items-center space-x-3 px-2">
- <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs border border-slate-300 uppercase">
- {currentUser?.username?.substring(0, 2)}
- </div>
- <div className="flex flex-col text-xs truncate">
- <span className="font-bold text-slate-800">{currentUser?.fullname}</span>
- <span className="text-[10px] text-slate-400 capitalize font-sans">{currentUser?.role} Mode</span>
- </div>
- </div>
+  <div className="flex items-center space-x-3 px-2">
+    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs border border-slate-300 uppercase overflow-hidden shrink-0">
+      {currentUser?.profile_image ? (
+        <img
+          src={getImageUrl(currentUser.profile_image)}
+          alt={currentUser.fullname}
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.src = '/logo.png'; }}
+        />
+      ) : (
+        currentUser?.username?.substring(0, 2)
+      )}
+    </div>
+    <div className="flex flex-col text-xs truncate">
+      <span className="font-bold text-slate-800">{currentUser?.fullname}</span>
+      <span className="text-[10px] text-slate-400 capitalize font-sans">{currentUser?.role} Mode</span>
+    </div>
+  </div>
 
  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
  <Link 
@@ -314,12 +361,34 @@ const AdminLayout = () => {
  គ្មានសេចក្តីជូនដំណឹងថ្មីទេ (ស្ងប់ស្ងាត់ល្អ)
  </div>
  ) : (
- notifications.map((notif) => (
- <div key={notif.id} className="p-3 hover:bg-slate-50/70 text-[11px] text-slate-750 flex flex-col space-y-1">
- <p className="leading-relaxed text-left">{notif.message}</p>
- <span className="text-[8px] text-slate-450 font-mono text-right">{notif.time}</span>
- </div>
- ))
+  notifications.map((notif) => {
+    const isOrderNotif = notif.type === 'new_order' || notif.type === 'order_updated';
+    const content = (
+      <>
+        <p className="leading-relaxed text-left">{notif.message}</p>
+        <span className="text-[8px] text-slate-450 font-mono text-right">{notif.time}</span>
+      </>
+    );
+
+    if (isOrderNotif && notif.orderId) {
+      return (
+        <Link 
+          key={notif.id} 
+          to={`/admin/orders?orderId=${notif.orderId}`}
+          onClick={() => setNotifDropdownOpen(false)}
+          className="p-3 hover:bg-slate-50/70 text-[11px] text-slate-750 flex flex-col space-y-1 block border-l-2 border-amber-500"
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <div key={notif.id} className="p-3 hover:bg-slate-50/70 text-[11px] text-slate-750 flex flex-col space-y-1">
+        {content}
+      </div>
+    );
+  })
  )}
  </div>
  </div>
@@ -332,9 +401,18 @@ const AdminLayout = () => {
  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
  className="flex items-center space-x-2.5 pl-2.5 border-l border-slate-200 cursor-pointer hover:opacity-85 transition"
  >
- <div className="h-8.5 w-8.5 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm">
- {currentUser?.fullname?.substring(0, 2)}
- </div>
+  <div className="h-8.5 w-8.5 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-xs uppercase shadow-sm overflow-hidden shrink-0 border border-amber-250">
+    {currentUser?.profile_image ? (
+      <img
+        src={getImageUrl(currentUser.profile_image)}
+        alt={currentUser.fullname}
+        className="w-full h-full object-cover"
+        onError={(e) => { e.target.src = '/logo.png'; }}
+      />
+    ) : (
+      currentUser?.fullname?.substring(0, 2)
+    )}
+  </div>
  <div className="hidden md:flex flex-col text-left">
  <span className="text-xs font-bold text-slate-800 leading-none">{currentUser?.fullname}</span>
  <span className="text-[9px] text-slate-400 capitalize mt-0.5">{currentUser?.role}</span>

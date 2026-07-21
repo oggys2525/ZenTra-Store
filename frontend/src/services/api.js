@@ -49,9 +49,11 @@ export const authService = {
     if (response.data.access_token) {
       localStorage.setItem('zentra_token', response.data.access_token);
       localStorage.setItem('zentra_user', JSON.stringify({
+        userid: response.data.userid,
         username: response.data.username,
         role: response.data.role,
         fullname: response.data.fullname,
+        profile_image: response.data.profile_image,
       }));
       window.dispatchEvent(new Event('auth_change'));
     }
@@ -151,6 +153,14 @@ export const orderService = {
     const response = await api.put(`/api/orders/${id}`, statusData);
     return response.data;
   },
+  trackOrder: async (orderId, phone) => {
+    let url = `/api/orders/track?order_id=${orderId}`;
+    if (phone) {
+      url += `&phone=${encodeURIComponent(phone)}`;
+    }
+    const response = await api.get(url);
+    return response.data;
+  },
 };
 
 export const userService = {
@@ -168,6 +178,24 @@ export const userService = {
   },
   deleteUser: async (id) => {
     const response = await api.delete(`/api/users/${id}`);
+    return response.data;
+  },
+  uploadProfileImage: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/users/upload-profile-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  updateMyProfile: async (userData) => {
+    const response = await api.put('/api/users/me', userData);
+    return response.data;
+  },
+  getMyProfile: async () => {
+    const response = await api.get('/api/users/me');
     return response.data;
   },
 };
@@ -215,8 +243,11 @@ export const promocodeService = {
 
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '/logo.png'; // Fallback
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
-  return `${API_BASE_URL}${imagePath}`;
+  // If imagePath is a comma-separated list of images, extract the first one and trim whitespace
+  const singlePath = typeof imagePath === 'string' ? imagePath.split(',')[0].trim() : '';
+  if (!singlePath) return '/logo.png';
+  if (singlePath.startsWith('http://') || singlePath.startsWith('https://')) return singlePath;
+  return `${API_BASE_URL}${singlePath}`;
 };
 
 export default api;

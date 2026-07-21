@@ -179,6 +179,34 @@ def get_orders(
         # Customer can view only their own orders
         return db.query(Order).filter(Order.UserID == user.UserID).order_by(Order.OrderID.desc()).all()
 
+@router.get("/track", response_model=OrderSchema)
+def track_order(
+    order_id: int,
+    phone: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to track order status by Order ID.
+    """
+    db_order = db.query(Order).filter(Order.OrderID == order_id).first()
+    if not db_order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found"
+        )
+        
+    if phone:
+        # Clean phone number (remove spaces)
+        clean_phone = phone.replace(" ", "").strip()
+        db_phone = db_order.CustomerPhone.replace(" ", "").strip()
+        if db_phone != clean_phone:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Incorrect phone number for this order"
+            )
+        
+    return db_order
+
 @router.get("/{order_id}", response_model=OrderSchema)
 def get_order(
     order_id: int,

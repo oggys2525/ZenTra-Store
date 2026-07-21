@@ -10,7 +10,7 @@ from decimal import Decimal
 
 # Import database, models, and dependencies
 from backend.app.database.connection import engine, Base, get_db, is_sqlite
-from backend.app.models.models import Category, User, StoreSetting, Product, Order
+from backend.app.models.models import Category, User, StoreSetting, Product, Order, PromoCode
 from backend.app.auth import get_staff_or_admin_user, get_password_hash
 from backend.app.websocket import manager
 
@@ -177,6 +177,38 @@ def startup_event():
                     )
                 ]
                 db.add_all(sample_products)
+                db.commit()
+
+            # 5. Seed Promo Codes if empty
+            if db.query(PromoCode).count() == 0:
+                logger.info("Seeding default promo codes...")
+                default_promos = [
+                    PromoCode(
+                        Code="ZENTRA10",
+                        DiscountType="Percentage",
+                        DiscountValue=Decimal("10.00"),
+                        MinOrderAmount=Decimal("10.00"),
+                        ExpiryDate=datetime(2027, 12, 31, 23, 59, 59),
+                        Status="Active"
+                    ),
+                    PromoCode(
+                        Code="WELCOME5",
+                        DiscountType="Fixed",
+                        DiscountValue=Decimal("5.00"),
+                        MinOrderAmount=Decimal("20.00"),
+                        ExpiryDate=datetime(2027, 12, 31, 23, 59, 59),
+                        Status="Active"
+                    ),
+                    PromoCode(
+                        Code="KHMERNEWYEAR",
+                        DiscountType="Percentage",
+                        DiscountValue=Decimal("20.00"),
+                        MinOrderAmount=Decimal("50.00"),
+                        ExpiryDate=datetime(2027, 12, 31, 23, 59, 59),
+                        Status="Active"
+                    )
+                ]
+                db.add_all(default_promos)
                 db.commit()
 
         except Exception as seed_err:
