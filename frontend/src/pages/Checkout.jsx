@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User, Trash2, Clock, ExternalLink, ShoppingBag } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User, Trash2, Clock, ExternalLink, ShoppingBag, XCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { orderService, settingsService, authService, promocodeService, getImageUrl } from '../services/api';
@@ -63,6 +63,113 @@ const Checkout = () => {
       setShowLoginPromptModal(false);
     }
   }, [currentUser, showLoginPromptModal]);
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'Confirmed':
+        return {
+          icon: <CheckCircle2 className="w-6 h-6 animate-pulse" />,
+          iconBg: 'bg-blue-50 text-blue-500',
+          title: language === 'kh' ? 'ការបញ្ជាទិញត្រូវបានបញ្ជាក់' : 'Order Confirmed',
+          statusText: language === 'kh' ? 'ស្ថានភាព៖ បានបញ្ជាក់' : 'Status: Confirmed',
+          badgeClass: 'bg-blue-50 border-blue-100 text-blue-600'
+        };
+      case 'Shipping':
+        return {
+          icon: <Truck className="w-6 h-6 animate-pulse" />,
+          iconBg: 'bg-indigo-50 text-indigo-500',
+          title: language === 'kh' ? 'កំពុងដឹកជញ្ជូនទំនិញ' : 'Order Shipping',
+          statusText: language === 'kh' ? 'ស្ថានភាព៖ កំពុងដឹកជញ្ជូន' : 'Status: Shipping',
+          badgeClass: 'bg-indigo-50 border-indigo-100 text-indigo-600'
+        };
+      case 'Completed':
+        return {
+          icon: <ShieldCheck className="w-6 h-6 animate-bounce" />,
+          iconBg: 'bg-emerald-50 text-emerald-500',
+          title: language === 'kh' ? 'ការបញ្ជាទិញបានបញ្ចប់សព្វគ្រប់' : 'Order Completed',
+          statusText: language === 'kh' ? 'ស្ថានភាព៖ បានបញ្ចប់' : 'Status: Completed',
+          badgeClass: 'bg-emerald-50 border-emerald-100 text-emerald-600'
+        };
+      case 'Cancelled':
+        return {
+          icon: <XCircle className="w-6 h-6" />,
+          iconBg: 'bg-red-50 text-red-500',
+          title: language === 'kh' ? 'ការបញ្ជាទិញត្រូវបានបដិសេធ' : 'Order Cancelled',
+          statusText: language === 'kh' ? 'ស្ថានភាព៖ បានបោះបង់' : 'Status: Cancelled',
+          badgeClass: 'bg-red-50 border-red-100 text-red-600'
+        };
+      case 'Pending':
+      default:
+        return {
+          icon: <Clock className="w-6 h-6 animate-bounce" />,
+          iconBg: 'bg-amber-50 text-amber-500',
+          title: language === 'kh' ? 'ការបញ្ជាទិញកំពុងរង់ចាំការបញ្ជាក់' : 'Order Pending Confirmation',
+          statusText: language === 'kh' ? 'ស្ថានភាព៖ រង់ចាំបុគ្គលិកបញ្ជាក់' : 'Status: Waiting Confirmation',
+          badgeClass: 'bg-amber-50 border-amber-100 text-amber-600'
+        };
+    }
+  };
+
+  useEffect(() => {
+    if (!orderSuccess) return;
+
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
+    const cleanBase = apiBase.replace('http://', '').replace('https://', '');
+    const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
+
+    let ws;
+    let reconnectTimeout;
+    
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'order_status_update' && data.data && data.data.order_id === orderSuccess.OrderID) {
+              setOrderSuccess(prev => {
+                if (prev && prev.OrderID === data.data.order_id) {
+                  return {
+                    ...prev,
+                    OrderStatus: data.data.new_status,
+                    PaymentStatus: data.data.payment_status || prev.PaymentStatus
+                  };
+                }
+                return prev;
+              });
+            }
+          } catch (err) {
+            console.error("Error parsing websocket message in checkout:", err);
+          }
+        };
+
+        ws.onclose = () => {
+          reconnectTimeout = setTimeout(connect, 3000);
+        };
+
+        ws.onerror = (err) => {
+          console.error("Websocket error in checkout:", err);
+          ws.close();
+        };
+      } catch (err) {
+        console.error("Failed to connect websocket in checkout:", err);
+      }
+    };
+
+    connect();
+
+    return () => {
+      if (ws) {
+        ws.onclose = null; // Prevent reconnect
+        ws.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, [orderSuccess?.OrderID]);
 
   const handleApplyPromo = async () => {
     if (!promoInput) return;
@@ -141,51 +248,65 @@ const Checkout = () => {
           <div className="flex-grow overflow-y-auto space-y-4 pr-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
             
             {/* Waiting Confirmation Icon & Title */}
-            <div className="space-y-2.5">
-              <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center animate-bounce">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-base font-bold text-slate-800 leading-tight">
-                  {language === 'kh' ? 'ការបញ្ជាទិញកំពុងរង់ចាំការបញ្ជាក់' : 'Order Pending Confirmation'}
-                </h2>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-50 border border-amber-100 text-amber-600 animate-pulse">
-                  {language === 'kh' ? 'ស្ថានភាព៖ រង់ចាំបុគ្គលិកបញ្ជាក់' : 'Status: Waiting Confirmation'}
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const statusConfig = getStatusConfig(orderSuccess.OrderStatus || 'Pending');
+              return (
+                <div className="space-y-2.5">
+                  <div className={`mx-auto w-12 h-12 rounded-full ${statusConfig.iconBg} flex items-center justify-center`}>
+                    {statusConfig.icon}
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-slate-800 leading-tight">
+                      {statusConfig.title}
+                    </h2>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-semibold ${statusConfig.badgeClass} border animate-pulse`}>
+                      {statusConfig.statusText}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* QR Code in Middle Center */}
             {orderSuccess.PaymentMethod === 'KHQR' && (
-              <div className="bg-red-50/40 border border-red-100/60 p-3 rounded-2xl space-y-2 flex flex-col items-center justify-center">
-                <div className="flex items-center justify-center space-x-1.5 text-red-500 font-bold text-[9px] uppercase tracking-wider">
-                  <QrCode className="h-4 w-4" />
-                  <span>ស្កែនទូទាត់ប្រាក់រហ័ស (Bakong KHQR)</span>
-                </div>
-                
-                {/* Visual QR Code Display */}
-                <div className="bg-white p-2 rounded-xl border border-slate-200/80 shadow-xs inline-block">
-                  <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-lg relative overflow-hidden border border-dashed border-slate-300">
-                    <div className="absolute inset-2 bg-slate-100 rounded flex flex-wrap p-0.5">
-                      {[...Array(9)].map((_, i) => (
-                        <div key={i} className="w-1/3 h-1/3 p-0.5">
-                          <div className={`w-full h-full ${i % 2 === 0 ? 'bg-slate-800' : 'bg-transparent'} rounded-xs`}></div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute inset-0 bg-radial-gradient flex items-center justify-center">
-                      <span className="bg-red-500 text-white font-extrabold text-[7px] px-1.5 py-0.5 rounded shadow-xs uppercase tracking-tight scale-90">
-                        Bakong
-                      </span>
+              (orderSuccess.OrderStatus || 'Pending') === 'Pending' ? (
+                <div className="bg-red-50/40 border border-red-100/60 p-3 rounded-2xl space-y-2 flex flex-col items-center justify-center animate-in fade-in duration-300">
+                  <div className="flex items-center justify-center space-x-1.5 text-red-500 font-bold text-[9px] uppercase tracking-wider">
+                    <QrCode className="h-4 w-4" />
+                    <span>ស្កែនទូទាត់ប្រាក់រហ័ស (Bakong KHQR)</span>
+                  </div>
+                  
+                  {/* Visual QR Code Display */}
+                  <div className="bg-white p-2 rounded-xl border border-slate-200/80 shadow-xs inline-block">
+                    <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-lg relative overflow-hidden border border-slate-200">
+                      <img 
+                        src="/assets/qr/photo-qr.jpg" 
+                        alt="Bakong KHQR" 
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   </div>
+                  
+                  {/* Total amount helper */}
+                  <span className="text-[10px] text-slate-500">
+                    {language === 'kh' ? 'ទឹកប្រាក់ត្រូវស្កែន៖' : 'Scan Amount:'} <strong className="text-red-500 text-xs font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
+                  </span>
                 </div>
-                
-                {/* Total amount helper */}
-                <span className="text-[10px] text-slate-500">
-                  {language === 'kh' ? 'ទឹកប្រាក់ត្រូវស្កែន៖' : 'Scan Amount:'} <strong className="text-red-500 text-xs font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
-                </span>
-              </div>
+              ) : (
+                <div className="bg-emerald-50/40 border border-emerald-100/60 p-5 rounded-2xl flex flex-col items-center justify-center space-y-2 animate-in zoom-in-95 duration-300">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xs font-extrabold text-emerald-700">
+                      {language === 'kh' ? 'ការទូទាត់ទទួលបានជោគជ័យ' : 'Payment Verified Successfully'}
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      {language === 'kh' ? 'អរគុណសម្រាប់ការជាវផលិតផលពីហាងយើងខ្ញុំ!' : 'Thank you for your order!'}
+                    </p>
+                  </div>
+                </div>
+              )
             )}
 
             {/* Quick Summary Grid */}

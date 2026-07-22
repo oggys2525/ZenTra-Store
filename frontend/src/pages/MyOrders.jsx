@@ -206,6 +206,80 @@ const MyOrders = () => {
     }
   }, [currentUser]);
 
+  // WebSocket Live status updates for tracking & history
+  useEffect(() => {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
+    const cleanBase = apiBase.replace('http://', '').replace('https://', '');
+    const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
+
+    let ws;
+    let reconnectTimeout;
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'order_status_update' && data.data) {
+              const updatedOrderId = data.data.order_id;
+              const newStatus = data.data.new_status;
+              const paymentStatus = data.data.payment_status;
+
+              // 1. Update trackedOrder if it matches
+              setTrackedOrder(prev => {
+                if (prev && prev.OrderID === updatedOrderId) {
+                  return {
+                    ...prev,
+                    OrderStatus: newStatus,
+                    PaymentStatus: paymentStatus || prev.PaymentStatus
+                  };
+                }
+                return prev;
+              });
+
+              // 2. Update order in userOrders list
+              setUserOrders(prevList => 
+                prevList.map(o => 
+                  o.OrderID === updatedOrderId 
+                    ? { ...o, OrderStatus: newStatus, PaymentStatus: paymentStatus || o.PaymentStatus }
+                    : o
+                )
+              );
+            }
+          } catch (err) {
+            console.error("Error parsing websocket message in MyOrders:", err);
+          }
+        };
+
+        ws.onclose = () => {
+          reconnectTimeout = setTimeout(connect, 3000);
+        };
+
+        ws.onerror = (err) => {
+          console.error("Websocket error in MyOrders:", err);
+          ws.close();
+        };
+      } catch (err) {
+        console.error("Failed to connect websocket in MyOrders:", err);
+      }
+    };
+
+    connect();
+
+    return () => {
+      if (ws) {
+        ws.onclose = null; // Prevent reconnect
+        ws.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+    };
+  }, []);
+
   // Handle manual tracking search
   const handleTrackSubmit = async (e) => {
     e.preventDefault();
