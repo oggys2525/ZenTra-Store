@@ -35,64 +35,74 @@ const Dashboard = () => {
  
  initDashboard();
 
- // Setup WebSocket for Real-time alerts
- const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'https://zentra-store.onrender.com';
- const wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/ws/notifications';
- 
- const connectWebSocket = () => {
- setWsStatus('connecting');
- const ws = new WebSocket(wsUrl);
- wsRef.current = ws;
+    // Setup WebSocket for Real-time alerts
+    let isMounted = true;
+    let reconnectTimeout = null;
 
- ws.onopen = () => {
- setWsStatus('connected');
- console.log("WebSocket connected to notifications");
- };
+    const getWsUrl = () => {
+      const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const cleanBase = apiBase.replace(/^https?:\/\//, '');
+      return `${wsProtocol}//${cleanBase}/ws/notifications`;
+    };
 
- ws.onmessage = (event) => {
- try {
- const payload = JSON.parse(event.data);
- 
- if (payload.type === 'connection_established') return;
- 
- // Prepend to notifications list
- setNotifications(prev => [
- {
- id: Date.now(),
- time: new Date().toLocaleTimeString(),
- ...payload
- },
- ...prev
- ].slice(0, 15)); // Limit to last 15 notifications
+    const connectWebSocket = () => {
+      if (!isMounted) return;
+      setWsStatus('connecting');
+      const wsUrl = getWsUrl();
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
- // Trigger dashboard statistics refresh dynamically on new orders or stock updates!
- if (payload.type === 'new_order' || payload.type === 'product_updated' || payload.type === 'product_created') {
- fetchStats();
- }
- } catch (err) {
- console.error("Error parsing WS packet:", err);
- }
- };
+      ws.onopen = () => {
+        if (!isMounted) return;
+        setWsStatus('connected');
+        console.log("WebSocket connected to notifications");
+      };
 
- ws.onclose = () => {
- setWsStatus('disconnected');
- console.log("WebSocket disconnected, retrying in 5s...");
- setTimeout(connectWebSocket, 5000); // Auto reconnect handler
- };
+      ws.onmessage = (event) => {
+        if (!isMounted) return;
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'connection_established') return;
 
- ws.onerror = (err) => {
- console.error("WebSocket error:", err);
- ws.close();
- };
- };
+          setNotifications(prev => [
+            {
+              id: Date.now(),
+              time: new Date().toLocaleTimeString(),
+              ...payload
+            },
+            ...prev
+          ].slice(0, 15));
 
- connectWebSocket();
+          if (payload.type === 'new_order' || payload.type === 'product_updated' || payload.type === 'product_created') {
+            fetchStats();
+          }
+        } catch (err) {
+          console.error("Error parsing WS packet:", err);
+        }
+      };
 
- return () => {
- if (wsRef.current) {
- wsRef.current.close();
- }
- };
+      ws.onclose = () => {
+        if (!isMounted) return;
+        setWsStatus('disconnected');
+        console.log("WebSocket disconnected, retrying in 5s...");
+        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
  }, []);
 
  if (loading || !stats) {

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getImageUrl } from '../services/api';
 
 const ProductCard = ({ product }) => {
  const { addToCart } = useCart();
+ const [added, setAdded] = useState(false);
  
  const hasDiscount = product.DiscountPrice !== null && parseFloat(product.DiscountPrice) > 0;
  const originalPrice = parseFloat(product.Price);
@@ -26,8 +27,8 @@ const ProductCard = ({ product }) => {
  const color = product.Color ? product.Color.split(',')[0].trim() : '';
  
  addToCart(product, 1, size, color);
- 
- // Optional: Add temporary toast/success feedback UI here
+ setAdded(true);
+ setTimeout(() => setAdded(false), 1500);
  };
 
  return (
@@ -96,11 +97,20 @@ const ProductCard = ({ product }) => {
  {/* Add to Cart Button */}
  {!isOutOfStock && (
  <button
- onClick={handleAddToCartClick}
- className="p-2.5 rounded-xl bg-slate-50 hover:bg-amber-500 hover:text-white text-slate-600 border border-slate-100 hover:border-amber-500 transition-all duration-200"
- title="បន្ថែមទៅកន្ត្រក"
+   type="button"
+   onClick={handleAddToCartClick}
+   className={`p-2.5 rounded-xl transition-all duration-300 border cursor-pointer ${
+     added 
+       ? 'bg-emerald-500 text-white border-emerald-500 scale-105 shadow-md' 
+       : 'bg-slate-50 hover:bg-amber-500 hover:text-white text-slate-600 border-slate-100 hover:border-amber-500'
+   }`}
+   title={added ? "បានបន្ថែមទៅកន្ត្រក!" : "បន្ថែមទៅកន្ត្រក"}
  >
- <ShoppingCart className="h-4.5 w-4.5" />
+   {added ? (
+     <Check className="h-4.5 w-4.5 animate-bounce" />
+   ) : (
+     <ShoppingCart className="h-4.5 w-4.5" />
+   )}
  </button>
  )}
  </div>

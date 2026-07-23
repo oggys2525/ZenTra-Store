@@ -1,14 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, Header, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from jose import jwt, JWTError
 import os
+import uuid
+import shutil
+import logging
 
 from backend.app.database.connection import get_db
 from backend.app.models.models import Order, OrderDetail, Product, User
-from backend.app.schemas.schemas import Order as OrderSchema, OrderCreate, OrderStatusUpdate
+from backend.app.schemas.schemas import Order as OrderSchema, OrderCreate, OrderStatusUpdate, PaymentSubmit
 from backend.app.auth import get_staff_or_admin_user, oauth2_scheme, SECRET_KEY, ALGORITHM
 from backend.app.websocket import manager
+
+logger = logging.getLogger("orders")
 
 router = APIRouter(prefix="/api/orders", tags=["Orders"])
 
@@ -290,5 +296,76 @@ async def update_order_status(
             "payment_status": db_order.PaymentStatus
         }
     })
+
+    return db_order
+
+@router.post("/upload-receipt", status_code=status.HTTP_201_CREATED)
+def upload_receipt(
+    file: UploadFile = File(...)
+):
+    """Uploads payment receipt image and returns image URL."""
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    if file_ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only image files (.jpg, .jpeg, .png, .webp) are allowed."
+        )
+
+    upload_dir = os.getenv("UPLOAD_DIR", "uploads")
+    if not os.path.isabs(upload_dir):
+        upload_dir = os.path.abspath(upload_dir)
+    receipts_dir = os.path.join(upload_dir, "receipts")
+    os.makedirs(receipts_dir, exist_ok=True)
+
+    unique_filename = f"receipt_{uuid.uuid4().hex}{file_ext}"
+    file_path = os.path.join(receipts_dir, unique_filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save receipt image: {str(e)}"
+        )
+
+    return {"image_url": f"/uploads/receipts/{unique_filename}"}
+
+@router.post("/{id}/submit-payment", response_model=OrderSchema)
+async def submit_order_payment(
+    id: int,
+    payment_in: PaymentSubmit,
+    db: Session = Depends(get_db)
+):
+    """Submits customer payment verification info (Transaction ID and/or Receipt Image)."""
+    db_order = db.query(Order).filter(Order.OrderID == id).first()
+    if not db_order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with ID {id} not found."
+        )
+    
+    if payment_in.TransactionID:
+        db_order.TransactionID = payment_in.TransactionID
+    if payment_in.ReceiptImage:
+        db_order.ReceiptImage = payment_in.ReceiptImage
+        
+    db.commit()
+    db.refresh(db_order)
+
+    # Broadcast notification to admin panel via websocket
+    try:
+        await manager.broadcast({
+            "type": "payment_submitted",
+            "message": f"Customer submitted payment proof for Order #{db_order.OrderID}",
+            "data": {
+                "order_id": db_order.OrderID,
+                "transaction_id": db_order.TransactionID,
+                "receipt_image": db_order.ReceiptImage,
+                "payment_status": db_order.PaymentStatus
+            }
+        })
+    except Exception as e:
+        logger.error(f"WebSocket broadcast error: {e}")
 
     return db_order

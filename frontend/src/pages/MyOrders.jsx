@@ -34,6 +34,8 @@ const MyOrders = () => {
   const [customDate, setCustomDate] = useState('');
   const [recentOrdersList, setRecentOrdersList] = useState([]);
   const invoiceRef = useRef(null);
+  const trackedOrderRef = useRef(null);
+  const lastScrolledOrderIdRef = useRef(null);
 
   const resolveOklchColor = (colorStr) => {
     if (!colorStr || typeof colorStr !== 'string' || !colorStr.includes('oklch')) return colorStr;
@@ -163,28 +165,62 @@ const MyOrders = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlOrderId = params.get('orderId');
-    if (urlOrderId) {
-      setSearchOrderId(urlOrderId);
+    if (!urlOrderId) return;
+
+    setSearchOrderId(urlOrderId);
+    const numId = Number(urlOrderId);
+
+    // Prevent duplicate re-fetching if already displaying this exact order
+    if (trackedOrder && trackedOrder.OrderID === numId && trackedOrder.details && trackedOrder.details.length > 0) {
+      return;
+    }
+
+    const stateOrder = location.state?.order && Number(location.state.order.OrderID) === numId ? location.state.order : null;
+    const existingInUserOrders = userOrders.find(o => o.OrderID === numId);
+    const existingInRecent = recentOrdersList.find(o => o.OrderID === numId);
+    const preloaded = stateOrder || existingInUserOrders || existingInRecent;
+
+    if (preloaded) {
+      setTrackedOrder(preloaded);
+      saveToRecentSearches(preloaded);
+    } else {
       setTrackingLoading(true);
-      orderService.trackOrder(urlOrderId)
-        .then(data => {
-          setTrackedOrder(data);
-          saveToRecentSearches(data);
-          setTrackingError('');
-        })
-        .catch(err => {
-          console.error(err);
+    }
+
+    orderService.trackOrder(urlOrderId)
+      .then(data => {
+        setTrackedOrder(data);
+        saveToRecentSearches(data);
+        setTrackingError('');
+      })
+      .catch(err => {
+        console.error(err);
+        if (!preloaded) {
           setTrackingError(
             language === 'kh' 
               ? 'រកមិនឃើញការបញ្ជាទិញនេះទេ! សូមពិនិត្យលេខកូដឡើងវិញ។' 
               : 'Order not found. Please check your Order ID.'
           );
-        })
-        .finally(() => {
-          setTrackingLoading(false);
-        });
+        }
+      })
+      .finally(() => {
+        setTrackingLoading(false);
+      });
+  }, [location.search, location.state, language, userOrders, recentOrdersList]);
+
+  // Auto-scroll to tracked order section ONCE per unique order on mobile (<768px)
+  useEffect(() => {
+    if (trackedOrder && trackedOrder.OrderID && trackedOrderRef.current) {
+      if (lastScrolledOrderIdRef.current !== trackedOrder.OrderID) {
+        lastScrolledOrderIdRef.current = trackedOrder.OrderID;
+        if (window.innerWidth < 768) {
+          setTimeout(() => {
+            trackedOrderRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 150);
+        }
+      }
     }
-  }, [location.search, language]);
+  }, [trackedOrder]);
 
   // Load order history if logged in
   useEffect(() => {
@@ -208,19 +244,22 @@ const MyOrders = () => {
 
   // WebSocket Live status updates for tracking & history
   useEffect(() => {
+    let isMounted = true;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
-    const cleanBase = apiBase.replace('http://', '').replace('https://', '');
+    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const cleanBase = apiBase.replace(/^https?:\/\//, '');
     const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
 
     let ws;
     let reconnectTimeout;
 
     const connect = () => {
+      if (!isMounted) return;
       try {
         ws = new WebSocket(wsUrl);
 
         ws.onmessage = (event) => {
+          if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'order_status_update' && data.data) {
@@ -255,12 +294,13 @@ const MyOrders = () => {
         };
 
         ws.onclose = () => {
-          reconnectTimeout = setTimeout(connect, 3000);
+          if (isMounted) {
+            reconnectTimeout = setTimeout(connect, 3000);
+          }
         };
 
         ws.onerror = (err) => {
           console.error("Websocket error in MyOrders:", err);
-          ws.close();
         };
       } catch (err) {
         console.error("Failed to connect websocket in MyOrders:", err);
@@ -270,13 +310,9 @@ const MyOrders = () => {
     connect();
 
     return () => {
-      if (ws) {
-        ws.onclose = null; // Prevent reconnect
-        ws.close();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
+      isMounted = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
     };
   }, []);
 
@@ -647,8 +683,15 @@ const MyOrders = () => {
         <div className="md:col-span-8 space-y-6">
           
           {/* Tracked Order Details Screen */}
-          {trackedOrder ? (
-            <div className="space-y-6 animate-in fade-in duration-300">
+          {trackingLoading && !trackedOrder ? (
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 premium-shadow text-center py-16 space-y-4 flex flex-col items-center justify-center min-h-[450px] animate-in fade-in duration-300">
+              <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs font-bold text-slate-600">
+                {language === 'kh' ? 'កំពុងទាញយកព័ត៌មានការបញ្ជាទិញ...' : 'Loading order details...'}
+              </p>
+            </div>
+          ) : trackedOrder ? (
+            <div ref={trackedOrderRef} className="space-y-6 animate-in fade-in duration-300">
               
               {/* Progress Stepper Card */}
               <div className="bg-white p-6 rounded-3xl border border-slate-100 premium-shadow space-y-6">

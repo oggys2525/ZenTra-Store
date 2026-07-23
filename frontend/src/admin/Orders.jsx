@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
- Eye, Edit, Search, X, CheckCircle, 
- AlertTriangle, Truck, Check, HelpCircle, XCircle, ShoppingBag,
- FileText, Image
+  Eye, Edit, Search, X, CheckCircle, 
+  AlertTriangle, Truck, Check, HelpCircle, XCircle, ShoppingBag,
+  FileText, Image, Calendar, ChevronLeft, ChevronRight, Filter, RotateCcw
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -16,10 +16,18 @@ const AdminOrders = () => {
   // Custom Filter States
   const [statusFilter, setStatusFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState('All');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
  
   // Selected Order for viewing details
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [paymentProofOrder, setPaymentProofOrder] = useState(null);
   const adminInvoiceRef = useRef(null);
 
   const resolveOklchColor = (colorStr) => {
@@ -187,17 +195,89 @@ const AdminOrders = () => {
  }
  };
 
-  // Filter orders by search query and dropdown selections
+  const filterByDate = (orderDateStr, filterType, start, end) => {
+    if (!orderDateStr || filterType === 'All') return true;
+    const oDate = new Date(orderDateStr);
+    const now = new Date();
+
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+    const endOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+    if (filterType === 'Today') {
+      return oDate >= startOfDay(now) && oDate <= endOfDay(now);
+    }
+    if (filterType === 'Yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return oDate >= startOfDay(yesterday) && oDate <= endOfDay(yesterday);
+    }
+    if (filterType === '7Days') {
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return oDate >= startOfDay(sevenDaysAgo);
+    }
+    if (filterType === '30Days') {
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return oDate >= startOfDay(thirtyDaysAgo);
+    }
+    if (filterType === 'ThisMonth') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      return oDate >= startOfMonth;
+    }
+    if (filterType === 'Custom') {
+      let match = true;
+      if (start) {
+        const sDate = startOfDay(new Date(start));
+        match = match && oDate >= sDate;
+      }
+      if (end) {
+        const eDate = endOfDay(new Date(end));
+        match = match && oDate <= eDate;
+      }
+      return match;
+    }
+    return true;
+  };
+
+  // Filter orders by search query, shipping status, payment status, and date
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.OrderID.toString().includes(searchQuery) ||
       o.CustomerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (o.CustomerPhone && o.CustomerPhone.includes(searchQuery));
 
     const matchesStatus = statusFilter === 'All' || o.OrderStatus === statusFilter;
-    const matchesPayment = paymentFilter === 'All' || o.PaymentStatus === paymentFilter;
+    
+    let matchesPayment = true;
+    if (paymentFilter === 'Paid') matchesPayment = o.PaymentStatus === 'Paid';
+    else if (paymentFilter === 'Unpaid') matchesPayment = o.PaymentStatus === 'Unpaid';
+    else if (paymentFilter === 'ProofSubmitted') matchesPayment = o.PaymentStatus === 'Unpaid' && (o.TransactionID || o.ReceiptImage);
 
-    return matchesSearch && matchesStatus && matchesPayment;
+    const matchesDate = filterByDate(o.CreatedDate, dateFilter, startDate, endDate);
+
+    return matchesSearch && matchesStatus && matchesPayment && matchesDate;
   });
+
+  // Reset to page 1 whenever any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, paymentFilter, dateFilter, startDate, endDate, itemsPerPage]);
+
+  // Calculate paginated slices
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
+
+  const resetAllFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('All');
+    setPaymentFilter('All');
+    setDateFilter('All');
+    setStartDate('');
+    setEndDate('');
+    setCurrentPage(1);
+  };
 
  const getOrderStatusBadge = (status) => {
  switch (status) {
@@ -231,26 +311,35 @@ const AdminOrders = () => {
  </div>
 
   {/* Toolbar */}
-  <div className="bg-white p-4 rounded-2xl premium-shadow">
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+  <div className="bg-white p-4 rounded-3xl premium-shadow space-y-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+      
       {/* Search Input */}
-      <div className="relative md:col-span-6">
+      <div className="relative lg:col-span-4">
         <input
           type="text"
-          placeholder="ស្វែងរកតាមលេខវិក្កយបត្រ ឈ្មោះ ឬលេខទូរស័ព្ទអតិថិជន..."
+          placeholder="ស្វែងរកតាមលេខវិក្កយបត្រ ឈ្មោះ ឬលេខទូរស័ព្ទ..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500 font-khmer"
+          className="w-full pl-9 pr-8 py-2.5 text-xs rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500 focus:bg-white font-khmer transition"
         />
         <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Shipping Status Filter */}
-      <div className="md:col-span-3">
+      <div className="lg:col-span-3">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+          className="w-full px-3.5 py-2.5 text-xs rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer focus:border-amber-500 transition"
         >
           <option value="All">ស្ថានភាពដឹកជញ្ជូនទាំងអស់ (All Shipping)</option>
           <option value="Pending">Pending (កំពុងរង់ចាំ)</option>
@@ -262,18 +351,84 @@ const AdminOrders = () => {
       </div>
 
       {/* Payment Status Filter */}
-      <div className="md:col-span-3">
+      <div className="lg:col-span-3">
         <select
           value={paymentFilter}
           onChange={(e) => setPaymentFilter(e.target.value)}
-          className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer"
+          className="w-full px-3.5 py-2.5 text-xs rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer focus:border-amber-500 transition"
         >
           <option value="All">ស្ថានភាពទូទាត់ទាំងអស់ (All Payments)</option>
           <option value="Paid">Paid (បានបង់ប្រាក់)</option>
           <option value="Unpaid">Unpaid (មិនទាន់បង់ប្រាក់)</option>
+          <option value="ProofSubmitted"> ផ្ញើបង្កាន់ដៃរួច (Proof Submitted)</option>
         </select>
       </div>
+
+      {/* Date Filter Presets */}
+      <div className="lg:col-span-2">
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="w-full px-3 py-2.5 text-xs rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold focus:outline-none cursor-pointer font-khmer focus:border-amber-500 transition"
+        >
+          <option value="All">កាលបរិច្ឆេទទាំងអស់ (All Dates)</option>
+          <option value="Today">ថ្ងៃនេះ (Today)</option>
+          <option value="Yesterday">ម្សិលមិញ (Yesterday)</option>
+          <option value="7Days">7 ថ្ងៃចុងក្រោយ (Last 7 Days)</option>
+          <option value="30Days">30 ថ្ងៃចុងក្រោយ (Last 30 Days)</option>
+          <option value="ThisMonth">ខែនេះ (This Month)</option>
+          <option value="Custom">កាលបរិច្ឆេទផ្ទាល់ខ្លួន (Custom)</option>
+        </select>
+      </div>
+
     </div>
+
+    {/* Custom Date Pickers & Reset Row */}
+    {(dateFilter === 'Custom' || searchQuery || statusFilter !== 'All' || paymentFilter !== 'All' || dateFilter !== 'All') && (
+      <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        {/* Custom Date Inputs */}
+        {dateFilter === 'Custom' ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-semibold">ពី (From)៖</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent text-xs font-sans text-slate-700 focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center space-x-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-400 font-semibold">ដល់ (To)៖</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent text-xs font-sans text-slate-700 focus:outline-none"
+              />
+            </div>
+          </div>
+        ) : <div />}
+
+        {/* Count Summary & Reset Button */}
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-[11px] text-slate-400 font-semibold">
+            រកឃើញ៖ <strong className="text-slate-800 font-sans">{filteredOrders.length}</strong> / {orders.length}
+          </span>
+          {(searchQuery || statusFilter !== 'All' || paymentFilter !== 'All' || dateFilter !== 'All') && (
+            <button
+              onClick={resetAllFilters}
+              className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition flex items-center gap-1 font-bold cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>សម្អាតតម្រង (Reset)</span>
+            </button>
+          )}
+        </div>
+
+      </div>
+    )}
   </div>
 
  {/* Table */}
@@ -283,8 +438,17 @@ const AdminOrders = () => {
  <div className="h-10 shimmer w-full rounded"></div>
  </div>
  ) : filteredOrders.length === 0 ? (
- <div className="text-center py-16 bg-white rounded-3xl premium-shadow">
- <p className="text-slate-400 text-xs">មិនមានការបញ្ជាទិញណាមួយនៅឡើយទេ</p>
+ <div className="text-center py-16 bg-white rounded-3xl premium-shadow space-y-3">
+ <p className="text-slate-400 text-xs">មិនមានការបញ្ជាទិញណាមួយត្រូវតាមតម្រងឡើយ (No orders found)</p>
+ {(searchQuery || statusFilter !== 'All' || paymentFilter !== 'All' || dateFilter !== 'All') && (
+    <button
+      onClick={resetAllFilters}
+      className="px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition cursor-pointer inline-flex items-center gap-1.5"
+    >
+      <RotateCcw className="w-3.5 h-3.5" />
+      <span>បង្ហាញការបញ្ជាទិញទាំងអស់ឡើងវិញ (Reset Filters)</span>
+    </button>
+  )}
  </div>
  ) : (
  <div className="bg-white rounded-3xl premium-shadow overflow-hidden">
@@ -316,9 +480,14 @@ const AdminOrders = () => {
  {new Date(ord.CreatedDate).toLocaleDateString()} {new Date(ord.CreatedDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
  </td>
  <td className="py-4 px-6 font-sans font-bold text-slate-900">${parseFloat(ord.TotalAmount).toFixed(2)}</td>
- <td className="py-4 px-6">
- <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-600">{ord.PaymentMethod}</span>
- </td>
+ <td className="py-4 px-6 whitespace-nowrap">
+    <span className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-600">{ord.PaymentMethod}</span>
+    {(ord.TransactionID || ord.ReceiptImage) && ord.PaymentStatus === 'Unpaid' && (
+      <span className="ml-1.5 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[9px] font-bold border border-amber-300 animate-pulse">
+        ផ្ញើបង្កាន់ដៃរួច
+      </span>
+    )}
+  </td>
  
  {/* Shipping status */}
  <td className="py-4 px-6 text-center">
@@ -428,20 +597,78 @@ const AdminOrders = () => {
  </div>
  )}
 
+  {/* Pagination Footer */}
+  {filteredOrders.length > 0 && (
+    <div className="bg-white p-4 rounded-3xl premium-shadow flex flex-col sm:flex-row items-center justify-between gap-4 font-khmer text-xs border border-slate-100 mt-4">
+      
+      {/* Item Range Count */}
+      <div className="text-slate-500 font-medium">
+        បង្ហាញ <strong className="text-slate-800 font-sans">{indexOfFirstItem + 1}</strong> ដល់ <strong className="text-slate-800 font-sans">{Math.min(indexOfLastItem, filteredOrders.length)}</strong> នៃ <strong className="text-slate-800 font-sans">{filteredOrders.length}</strong> ការបញ្ជាទិញ
+      </div>
 
- {/* ========================================================
- Order Details Invoice Modal
- ======================================================== */}
- {detailModalOpen && selectedOrder && (
- <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
- <div className="relative bg-white rounded-3xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-6 space-y-6 animate-in zoom-in-95 duration-200 shadow-2xl">
- <div className="flex justify-between items-center pb-4 border-b border-slate-100">
- <div>
- <h3 className="font-bold text-slate-800 text-sm">វិក្កយបត្របញ្ជាទិញ (Invoice)</h3>
- <span className="text-[10px] text-slate-400 font-sans mt-0.5">លេខបញ្ជាទិញ៖ #{selectedOrder.OrderID}</span>
- </div>
-  <div className="flex items-center space-x-2">
-    <button
+      {/* Controls */}
+      <div className="flex items-center space-x-4">
+        
+        {/* Items per page selector */}
+        <div className="flex items-center space-x-1.5">
+          <span className="text-slate-400 font-semibold">ចំនួនក្នុងមួយទំព័រ៖</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="px-2.5 py-1 text-xs rounded-xl border border-slate-200 bg-slate-50 font-sans font-bold text-slate-700 focus:outline-none cursor-pointer"
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
+
+        {/* Page Navigation Buttons */}
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition"
+            title="ទំព័រថយក្រោយ"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <span className="px-3 py-1 font-bold font-sans text-slate-700 bg-slate-100 rounded-xl">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition"
+            title="ទំព័របន្ទាប់"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  )}
+
+{detailModalOpen && selectedOrder && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-khmer animate-in fade-in duration-200">
+      <div className="relative bg-white rounded-3xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 shadow-2xl border border-slate-100">
+        
+        {/* Top Header - Fixed flush at top with 0 gap */}
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0 z-20">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">វិក្កយបត្របញ្ជាទិញ (Invoice)</h3>
+            <span className="text-[10px] text-slate-400 font-sans mt-0.5">លេខបញ្ជាទិញ៖ #{selectedOrder.OrderID}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
       onClick={downloadAdminPDF}
       title="Download PDF"
       className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition cursor-pointer"
@@ -461,10 +688,11 @@ const AdminOrders = () => {
     >
       <X className="h-5 w-5" />
     </button>
-  </div>
- </div>
+          </div>
+        </div>
 
-  <div className="space-y-4 text-xs">
+        {/* Scrollable Middle Body */}
+        <div className="flex-grow overflow-y-auto p-6 space-y-4 text-xs">
   
   {/* Customer details info block */}
   <div className="bg-slate-50 p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -481,6 +709,21 @@ const AdminOrders = () => {
   <p className="font-semibold text-slate-600 leading-relaxed">{selectedOrder.CustomerAddress}</p>
   </div>
   </div>
+
+   {/* Clean Payment Proof Banner in Invoice Modal */}
+   {(selectedOrder.TransactionID || selectedOrder.ReceiptImage) && (
+     <button
+       type="button"
+       onClick={() => {
+         setDetailModalOpen(false);
+         setPaymentProofOrder(selectedOrder);
+       }}
+       className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-bold text-xs rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer font-khmer shadow-xs"
+     >
+       <FileText className="w-4 h-4 text-amber-600 animate-pulse" />
+       <span>អតិថិជនបានផ្ញើបង្កាន់ដៃទូទាត់ - ចុចទីនេះដើម្បីផ្ទៀងផ្ទាត់ (Review Payment Proof)</span>
+     </button>
+   )}
 
    {/* Order Status & Payment Method details */}
    <div className="grid grid-cols-3 gap-2 text-xs px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl">
@@ -687,9 +930,9 @@ const AdminOrders = () => {
     </div>
   </div>
 
-  {/* Manage / Confirm Actions section */}
+  {/* Manage / Confirm Actions section (Footer) */}
   {(selectedOrder.OrderStatus === 'Pending' || (selectedOrder.PaymentStatus === 'Unpaid' && selectedOrder.OrderStatus !== 'Cancelled')) && (
-  <div className="border-t border-slate-100 pt-4 flex flex-col sm:flex-row gap-3">
+  <div className="px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3 shrink-0 z-20">
   {selectedOrder.OrderStatus === 'Pending' && (
   <button
   type="button"
@@ -744,6 +987,190 @@ const AdminOrders = () => {
 
   </div>
   </div>
+  )}
+
+  {/* ========================================================
+       Dedicated Payment Proof Verification Modal
+       ======================================================== */}
+  {paymentProofOrder && (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm font-khmer animate-in fade-in duration-200">
+      <div className="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5 animate-in zoom-in-95 duration-200 shadow-2xl border border-slate-100">
+        
+        {/* Modal Header */}
+        <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">
+                ផ្ទៀងផ្ទាត់ការទូទាត់ប្រាក់ (Payment Proof Verification)
+              </h3>
+              <span className="text-[10px] text-slate-400 font-sans">Order ID: #{paymentProofOrder.OrderID}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setPaymentProofOrder(null)}
+            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Grid: Left = Large Receipt Preview, Right = Transaction & Customer Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+          
+          {/* Left Side: Receipt Image Preview */}
+          <div className="md:col-span-6 space-y-2">
+            <span className="text-[11px] font-bold text-slate-600 block">
+              រូបភាពបង្កាន់ដៃ (Receipt Image)៖
+            </span>
+            {paymentProofOrder.ReceiptImage ? (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900/5 group aspect-[3/4] flex items-center justify-center shadow-xs">
+                <img
+                  src={getImageUrl(paymentProofOrder.ReceiptImage)}
+                  alt="Receipt Image"
+                  className="w-full h-full object-contain p-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPreviewProductImage({
+                    Image: paymentProofOrder.ReceiptImage,
+                    ProductName: `បង្កាន់ដៃទូទាត់ប្រាក់ - Order #${paymentProofOrder.OrderID}`
+                  })}
+                  className="absolute bottom-2 right-2 bg-slate-900/80 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-xl font-medium backdrop-blur-xs shadow-md transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>ពង្រីក (Full Zoom)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center text-slate-400 text-xs">
+                មិនមានរូបភាពបង្កាន់ដៃឡើយ
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: Payment Info & Customer Details */}
+          <div className="md:col-span-6 space-y-4">
+            
+            {/* Status Badges */}
+            <div className="p-3 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-semibold">ស្ថានភាពទូទាត់៖</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getPaymentStatusBadge(paymentProofOrder.PaymentStatus)}`}>
+                  {paymentProofOrder.PaymentStatus}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-semibold">ស្ថានភាពដឹកជញ្ជូន៖</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getOrderStatusBadge(paymentProofOrder.OrderStatus)}`}>
+                  {paymentProofOrder.OrderStatus}
+                </span>
+              </div>
+            </div>
+
+            {/* Transaction ID */}
+            {paymentProofOrder.TransactionID && (
+              <div className="bg-amber-50/80 border border-amber-200 p-3 rounded-2xl space-y-1">
+                <span className="text-[10px] text-amber-800 font-bold block uppercase tracking-wider">
+                  លេខប្រតិបត្តិការ (Transaction ID)
+                </span>
+                <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-amber-200">
+                  <strong className="text-slate-900 font-mono text-sm tracking-wide select-all">
+                    {paymentProofOrder.TransactionID}
+                  </strong>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(paymentProofOrder.TransactionID);
+                      alert("បានចម្លងលេខប្រតិបត្តិការ (Copied Transaction ID)");
+                    }}
+                    className="px-2 py-1 text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold rounded-lg transition cursor-pointer"
+                  >
+                    ចម្លង (Copy)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Customer Details Box */}
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-xs space-y-2 text-left">
+              <div className="flex justify-between">
+                <span className="text-slate-400">ឈ្មោះអតិថិជន៖</span>
+                <strong className="text-slate-800 font-bold">{paymentProofOrder.CustomerName}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">លេខទូរស័ព្ទ៖</span>
+                <span className="text-slate-700 font-bold font-sans">{paymentProofOrder.CustomerPhone}</span>
+              </div>
+              <div className="flex justify-between border-t border-slate-200/60 pt-2 text-sm">
+                <span className="font-bold text-slate-600">តម្លៃត្រូវស្កែន៖</span>
+                <strong className="text-red-500 font-sans font-extrabold">${parseFloat(paymentProofOrder.TotalAmount).toFixed(2)}</strong>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              {paymentProofOrder.PaymentStatus === 'Unpaid' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await orderService.updateOrderStatus(paymentProofOrder.OrderID, {
+                          OrderStatus: paymentProofOrder.OrderStatus === 'Pending' ? 'Confirmed' : paymentProofOrder.OrderStatus,
+                          PaymentStatus: 'Paid'
+                        });
+                        loadOrders();
+                        setPaymentProofOrder(null);
+                      } catch (err) {
+                        console.error(err);
+                        alert("មិនអាចកែប្រែស្ថានភាពបានទេ។");
+                      }
+                    }}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer font-khmer"
+                  >
+                    <Check className="w-4 h-4 text-white" />
+                    <span>បញ្ជាក់ទទួលស្គាល់ការទូទាត់ប្រាក់ (Approve Payment)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm("តើអ្នកពិតជាចង់បដិសេធការទូទាត់ប្រាក់នេះមែនទេ? (Reject Payment)")) {
+                        try {
+                          await orderService.updateOrderStatus(paymentProofOrder.OrderID, {
+                            OrderStatus: 'Pending',
+                            PaymentStatus: 'Unpaid'
+                          });
+                          loadOrders();
+                          setPaymentProofOrder(null);
+                        } catch (err) {
+                          console.error(err);
+                          alert("មិនអាចកែប្រែស្ថានភាពបានទេ។");
+                        }
+                      }
+                    }}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 hover:border-red-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer font-khmer"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>មិនទាន់បានបង់ប្រាក់ / មិនត្រឹមត្រូវ (Reject)</span>
+                  </button>
+                </>
+              ) : (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-800 font-bold text-xs">
+                  ✅ ការទូទាត់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់រួចរាល់ (Payment Verified)
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </div>
   )}
 
   {/* ========================================================

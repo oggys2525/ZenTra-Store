@@ -1,11 +1,12 @@
 import os
 import logging
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException, status
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from decimal import Decimal
 
 # Import database, models, and dependencies
@@ -26,14 +27,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Middleware Configuration
+# CORS Middleware Configuration - use allow_origin_regex for credentials support
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production (e.g. ["http://localhost:5173"])
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global Exception Handler to ensure CORS headers on 500 Internal Server Errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Exception on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
+
 
 # Ensure uploads directory exists and mount it
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
@@ -70,6 +81,18 @@ def startup_event():
         # Create all tables if they don't exist
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified.")
+
+        # Ensure new columns exist on Orders table if created previously
+        with engine.connect() as conn:
+            for col_name, col_type in [("TransactionID", "VARCHAR(100)"), ("ReceiptImage", "VARCHAR(500)")]:
+                try:
+                    if is_sqlite:
+                        conn.execute(text(f"ALTER TABLE Orders ADD COLUMN {col_name} {col_type}"))
+                    else:
+                        conn.execute(text(f"ALTER TABLE Orders ADD {col_name} {col_type}"))
+                    conn.commit()
+                except Exception:
+                    pass
 
         # Seed data using a temporary session
         db = Session(bind=engine)

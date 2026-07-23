@@ -136,6 +136,10 @@ class OrderStatusUpdate(BaseModel):
     OrderStatus: str # Pending, Confirmed, Shipping, Completed, Cancelled
     PaymentStatus: Optional[str] = None # Unpaid, Paid
 
+class PaymentSubmit(BaseModel):
+    TransactionID: Optional[str] = None
+    ReceiptImage: Optional[str] = None
+
 class Order(BaseModel):
     OrderID: int
     UserID: Optional[int] = None
@@ -143,6 +147,8 @@ class Order(BaseModel):
     CustomerPhone: str
     CustomerAddress: str
     PaymentMethod: str
+    TransactionID: Optional[str] = None
+    ReceiptImage: Optional[str] = None
     TotalAmount: Decimal
     DiscountAmount: Optional[Decimal] = None
     PromoCode: Optional[str] = None

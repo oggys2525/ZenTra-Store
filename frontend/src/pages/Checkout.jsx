@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User, Trash2, Clock, ExternalLink, ShoppingBag, XCircle } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle2, ArrowRight, ShieldCheck, QrCode, User, Trash2, Clock, ExternalLink, ShoppingBag, XCircle, Upload, Camera, Send, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 import { orderService, settingsService, authService, promocodeService, getImageUrl } from '../services/api';
@@ -19,6 +19,16 @@ const Checkout = () => {
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [showLoginPromptModal, setShowLoginPromptModal] = useState(false);
+
+  // Payment Verification States
+  const [paymentName, setPaymentName] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
+  const [submittedInfo, setSubmittedInfo] = useState(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   // Promo Code States
   const [promoInput, setPromoInput] = useState('');
@@ -63,6 +73,79 @@ const Checkout = () => {
       setShowLoginPromptModal(false);
     }
   }, [currentUser, showLoginPromptModal]);
+
+  useEffect(() => {
+    if (orderSuccess) {
+      setPaymentName(orderSuccess.CustomerName || '');
+      setTransactionId(orderSuccess.TransactionID || '');
+      if (orderSuccess.ReceiptImage || orderSuccess.TransactionID) {
+        setPaymentSubmitted(true);
+        setSubmittedInfo({
+          transactionId: orderSuccess.TransactionID,
+          receiptUrl: orderSuccess.ReceiptImage
+        });
+      } else {
+        setPaymentSubmitted(false);
+        setSubmittedInfo(null);
+      }
+    }
+  }, [orderSuccess]);
+
+  const handleReceiptChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      setReceiptFile(file);
+      setReceiptPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
+  const handleSubmitPaymentProof = async () => {
+    if (!orderSuccess) return;
+    if (!transactionId) {
+      alert(language === 'kh' ? 'សូមបំពេញលេខប្រតិបត្តិការ (Transaction ID)!' : 'Please enter Transaction ID!');
+      return;
+    }
+    if (!receiptFile && !submittedInfo?.receiptUrl) {
+      alert(language === 'kh' ? 'សូមជ្រើសរើសរូបភាពបង្កាន់ដៃទូទាត់ប្រាក់ (Receipt Image)!' : 'Please upload Receipt Image!');
+      return;
+    }
+
+    try {
+      setSubmittingPayment(true);
+      let receiptUrl = submittedInfo?.receiptUrl || '';
+
+      if (receiptFile) {
+        const uploadRes = await orderService.uploadReceipt(receiptFile);
+        receiptUrl = uploadRes.image_url;
+      }
+
+      await orderService.submitPaymentProof(orderSuccess.OrderID, {
+        TransactionID: transactionId,
+        ReceiptImage: receiptUrl
+      });
+
+      setSubmittedInfo({
+        transactionId: transactionId,
+        receiptUrl: receiptUrl
+      });
+      setPaymentSubmitted(true);
+      setOrderSuccess(prev => ({
+        ...prev,
+        TransactionID: transactionId,
+        ReceiptImage: receiptUrl
+      }));
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.detail || (language === 'kh' ? "មានបញ្ហាពេលផ្ញើព័ត៌មានទូទាត់ប្រាក់!" : "Failed to submit payment info!"));
+    } finally {
+      setSubmittingPayment(false);
+    }
+  };
 
   const getStatusConfig = (status) => {
     switch (status) {
@@ -113,19 +196,22 @@ const Checkout = () => {
   useEffect(() => {
     if (!orderSuccess) return;
 
+    let isMounted = true;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
-    const cleanBase = apiBase.replace('http://', '').replace('https://', '');
+    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const cleanBase = apiBase.replace(/^https?:\/\//, '');
     const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
 
     let ws;
     let reconnectTimeout;
     
     const connect = () => {
+      if (!isMounted) return;
       try {
         ws = new WebSocket(wsUrl);
 
         ws.onmessage = (event) => {
+          if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'order_status_update' && data.data && data.data.order_id === orderSuccess.OrderID) {
@@ -146,7 +232,9 @@ const Checkout = () => {
         };
 
         ws.onclose = () => {
-          reconnectTimeout = setTimeout(connect, 3000);
+          if (isMounted) {
+            reconnectTimeout = setTimeout(connect, 3000);
+          }
         };
 
         ws.onerror = (err) => {
@@ -226,10 +314,11 @@ const Checkout = () => {
   };
 
  const response = await orderService.createOrder(payload);
- 
- // Success triggers success screen
- setOrderSuccess(response);
- clearCart();
+    // Success triggers success screen
+    setOrderSuccess(response);
+    setPaymentName(response.CustomerName || customerName);
+    setShowPaymentForm(false);
+    clearCart();
  } catch (err) {
  console.error(err);
  alert(err.response?.data?.detail || "មានបញ្ហាពេលបញ្ជាទិញ។ សូមព្យាយាមម្តងទៀត!");
@@ -245,7 +334,7 @@ const Checkout = () => {
         <div className="relative bg-white rounded-3xl w-[380px] h-[530px] max-h-[85vh] p-6 shadow-2xl animate-in zoom-in-95 duration-200 text-slate-700 text-center border border-slate-100 flex flex-col justify-between overflow-hidden">
           
           {/* Scrollable Content Container */}
-          <div className="flex-grow overflow-y-auto space-y-4 pr-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+          <div className="flex-grow overflow-y-auto overscroll-contain space-y-4 pr-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
             
             {/* Waiting Confirmation Icon & Title */}
             {(() => {
@@ -266,31 +355,194 @@ const Checkout = () => {
                 </div>
               );
             })()}
-
             {/* QR Code in Middle Center */}
             {orderSuccess.PaymentMethod === 'KHQR' && (
               (orderSuccess.OrderStatus || 'Pending') === 'Pending' ? (
-                <div className="bg-red-50/40 border border-red-100/60 p-3 rounded-2xl space-y-2 flex flex-col items-center justify-center animate-in fade-in duration-300">
-                  <div className="flex items-center justify-center space-x-1.5 text-red-500 font-bold text-[9px] uppercase tracking-wider">
-                    <QrCode className="h-4 w-4" />
-                    <span>ស្កែនទូទាត់ប្រាក់រហ័ស (Bakong KHQR)</span>
+                <div className="space-y-3">
+                  {/* QR Scan Display */}
+                  <div className="bg-red-50/40 border border-red-100/60 p-3 rounded-2xl space-y-2 flex flex-col items-center justify-center animate-in fade-in duration-300">
+                    <div className="flex items-center justify-center space-x-1.5 text-red-500 font-bold text-[9px] uppercase tracking-wider">
+                      <QrCode className="h-4 w-4" />
+                      <span>ស្កែនទូទាត់ប្រាក់រហ័ស (Bakong KHQR)</span>
+                    </div>
+                    
+                    {/* Visual QR Code Display */}
+                    <div className="bg-white p-2 rounded-xl border border-slate-200/80 shadow-xs inline-block">
+                      <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-lg relative overflow-hidden border border-slate-200">
+                        <img 
+                          src="/assets/qr/photo-qr.jpg" 
+                          alt="Bakong KHQR" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Total amount helper */}
+                    <span className="text-[10px] text-slate-500">
+                      {language === 'kh' ? 'ទឹកប្រាក់ត្រូវស្កែន៖' : 'Scan Amount:'} <strong className="text-red-500 text-xs font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
+                    </span>
                   </div>
-                  
-                  {/* Visual QR Code Display */}
-                  <div className="bg-white p-2 rounded-xl border border-slate-200/80 shadow-xs inline-block">
-                    <div className="w-32 h-32 bg-slate-50 flex items-center justify-center rounded-lg relative overflow-hidden border border-slate-200">
-                      <img 
-                        src="/assets/qr/photo-qr.jpg" 
-                        alt="Bakong KHQR" 
-                        className="w-full h-full object-contain"
-                      />
+
+                  {/* Quick Summary Grid */}
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-left space-y-2 text-[11px]">
+                    <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
+                      <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខកូដបញ្ជាទិញ៖' : 'Order ID:'}</span>
+                      <strong className="text-slate-800 font-mono">#{orderSuccess.OrderID}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-semibold">{language === 'kh' ? 'អតិថិជន៖' : 'Customer Name:'}</span>
+                      <span className="text-slate-700 font-bold">{orderSuccess.CustomerName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខទូរស័ព្ទ៖' : 'Phone:'}</span>
+                      <span className="text-slate-700 font-medium font-sans">{orderSuccess.CustomerPhone}</span>
+                    </div>
+                    <div className="flex justify-between items-start">
+                      <span className="text-slate-400 font-semibold flex-shrink-0 mr-4">{language === 'kh' ? 'អាសយដ្ឋាន៖' : 'Address:'}</span>
+                      <span className="text-slate-700 text-right line-clamp-2 leading-tight">{orderSuccess.CustomerAddress}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-200/60 pt-1.5 text-xs">
+                      <span className="font-bold text-slate-600">{language === 'kh' ? 'តម្លៃសរុបទាំងអស់៖' : 'Grand Total:'}</span>
+                      <strong className="text-red-500 font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
                     </div>
                   </div>
-                  
-                  {/* Total amount helper */}
-                  <span className="text-[10px] text-slate-500">
-                    {language === 'kh' ? 'ទឹកប្រាក់ត្រូវស្កែន៖' : 'Scan Amount:'} <strong className="text-red-500 text-xs font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
-                  </span>
+
+                  {/* Payment Verification Form / Success Feedback Card */}
+                  {paymentSubmitted ? (
+                    <div className="bg-emerald-50/80 border border-emerald-200/90 p-4 rounded-2xl flex flex-col items-center justify-center space-y-2.5 animate-in zoom-in-95 duration-300 text-center shadow-xs">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <h3 className="text-xs font-bold text-emerald-800 leading-snug">
+                          ✅ {language === 'kh' ? 'ព័ត៌មានទូទាត់ប្រាក់ត្រូវបានផ្ញើដោយជោគជ័យ' : 'Payment information submitted successfully.'}
+                        </h3>
+                        <p className="text-[11px] font-semibold text-emerald-700">
+                          {language === 'kh' ? 'សំណើទូទាត់ប្រាក់របស់អ្នកត្រូវបានផ្ញើជូនប្រព័ន្ធ' : 'Your payment request has been sent.'}
+                        </p>
+                        <p className="text-[10px] text-slate-600 leading-relaxed pt-1.5 border-t border-emerald-200/60 mt-1">
+                          {language === 'kh' 
+                            ? 'អ្នកនឹងទទួលបានការជូនដំណឹងបន្ទាប់ពីបុគ្គលិករបស់យើងពិនិត្យមើលការទូទាត់របស់អ្នក។' 
+                            : 'You will receive a notification after our staff reviews your payment.'}
+                        </p>
+                      </div>
+
+                      {/* Submitted Details Summary */}
+                      {submittedInfo && (
+                        <div className="w-full bg-white/90 p-2.5 rounded-xl border border-emerald-200 text-left text-[10px] space-y-1 font-sans text-slate-600 mt-1">
+                          {submittedInfo.transactionId && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខប្រតិបត្តិការ៖' : 'Txn ID:'}</span>
+                              <strong className="text-slate-800 font-mono">{submittedInfo.transactionId}</strong>
+                            </div>
+                          )}
+                          {submittedInfo.receiptUrl && (
+                            <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                              <span className="text-slate-400 font-semibold">{language === 'kh' ? 'រូបភាពបង្កាន់ដៃ៖' : 'Receipt:'}</span>
+                              <a href={getImageUrl(submittedInfo.receiptUrl)} target="_blank" rel="noreferrer" className="text-amber-600 font-bold hover:underline">
+                                {language === 'kh' ? 'មើលរូបភាព' : 'View Image'}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 text-left space-y-3 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                        <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5 font-khmer">
+                          <Upload className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{language === 'kh' ? 'បំពេញព័ត៌មានទូទាត់ប្រាក់' : 'Payment Verification Form'}</span>
+                        </span>
+                        <span className="text-[9px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                          {language === 'kh' ? 'ស្កែនរួចបំពេញ' : 'Scan & Submit'}
+                        </span>
+                      </div>
+
+                      {/* Name field */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          {language === 'kh' ? 'ឈ្មោះអតិថិជន (Name) *' : 'Name *'}
+                        </label>
+                        <input 
+                          type="text"
+                          value={paymentName}
+                          onChange={(e) => setPaymentName(e.target.value)}
+                          required
+                          placeholder={language === 'kh' ? 'វាយបញ្ចូលឈ្មោះ...' : 'Enter name...'}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-amber-500 font-medium"
+                        />
+                      </div>
+
+                      {/* Transaction ID field */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          {language === 'kh' ? 'លេខប្រតិបត្តិការ (Transaction ID) *' : 'Transaction ID *'}
+                        </label>
+                        <input 
+                          type="text"
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          required
+                          placeholder={language === 'kh' ? 'វាយបញ្ចូល ID (ឧ. 102938475)' : 'e.g. 102938475'}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-amber-500 font-mono text-slate-800"
+                        />
+                      </div>
+
+                      {/* Amount field */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          {language === 'kh' ? 'ទឹកប្រាក់ (Amount)' : 'Amount'}
+                        </label>
+                        <input 
+                          type="text"
+                          value={`$${parseFloat(orderSuccess.TotalAmount).toFixed(2)}`}
+                          readOnly
+                          disabled
+                          className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-100 text-red-500 font-bold font-sans cursor-not-allowed"
+                        />
+                      </div>
+
+                      {/* Receipt Image field */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-600 block">
+                          {language === 'kh' ? 'រូបភាពបង្កាន់ដៃ (Receipt Image) *' : 'Receipt Image *'}
+                        </label>
+                        
+                        {receiptPreview ? (
+                          <div className="relative w-full h-24 rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 group">
+                            <img 
+                              src={receiptPreview} 
+                              alt="Receipt preview" 
+                              className="w-full h-full object-contain p-1"
+                            />
+                            <button 
+                              type="button" 
+                              onClick={handleRemoveReceipt}
+                              className="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition"
+                              title="Remove image"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl p-2.5 bg-white hover:bg-amber-50/40 hover:border-amber-300 transition cursor-pointer text-center group">
+                            <Camera className="w-4 h-4 text-slate-400 group-hover:text-amber-500 mb-1 transition" />
+                            <span className="text-[10px] text-slate-500 group-hover:text-slate-700 font-medium">
+                              {language === 'kh' ? 'ជ្រើសរើស/ថតរូបភាពបង្កាន់ដៃ (Receipt)' : 'Upload Receipt Image'}
+                            </span>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={handleReceiptChange} 
+                              className="hidden" 
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-emerald-50/40 border border-emerald-100/60 p-5 rounded-2xl flex flex-col items-center justify-center space-y-2 animate-in zoom-in-95 duration-300">
@@ -309,42 +561,42 @@ const Checkout = () => {
               )
             )}
 
-            {/* Quick Summary Grid */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-left space-y-2.5 text-[11px]">
-              <div className="flex justify-between border-b border-slate-200/60 pb-1.5">
-                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខកូដបញ្ជាទិញ៖' : 'Order ID:'}</span>
-                <strong className="text-slate-800 font-mono">#{orderSuccess.OrderID}</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'អតិថិជន៖' : 'Customer Name:'}</span>
-                <span className="text-slate-700 font-bold">{orderSuccess.CustomerName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400 font-semibold">{language === 'kh' ? 'លេខទូរស័ព្ទ៖' : 'Phone:'}</span>
-                <span className="text-slate-700 font-medium font-sans">{orderSuccess.CustomerPhone}</span>
-              </div>
-              <div className="flex justify-between items-start">
-                <span className="text-slate-400 font-semibold flex-shrink-0 mr-4">{language === 'kh' ? 'អាសយដ្ឋាន៖' : 'Address:'}</span>
-                <span className="text-slate-700 text-right line-clamp-2 leading-tight">{orderSuccess.CustomerAddress}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200/60 pt-1.5 text-xs">
-                <span className="font-bold text-slate-600">{language === 'kh' ? 'តម្លៃសរុបទាំងអស់៖' : 'Grand Total:'}</span>
-                <strong className="text-red-500 font-sans">${parseFloat(orderSuccess.TotalAmount).toFixed(2)}</strong>
-              </div>
-            </div>
-
           </div>
 
           {/* Fixed Footer Action Buttons at Bottom */}
           <div className="space-y-2 pt-3 border-t border-slate-100 flex-shrink-0">
-            <Link 
-              to={`/orders?orderId=${orderSuccess.OrderID}`}
-              onClick={() => setOrderSuccess(null)}
-              className="w-full py-2.5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{language === 'kh' ? 'មើលវិក្កយបត្របញ្ជាទិញ' : 'View Order Invoice'}</span>
-            </Link>
+            {orderSuccess.PaymentMethod === 'KHQR' && (orderSuccess.OrderStatus || 'Pending') === 'Pending' && !paymentSubmitted ? (
+              <button
+                type="button"
+                onClick={handleSubmitPaymentProof}
+                disabled={submittingPayment || !transactionId || !receiptFile}
+                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none"
+              >
+                {submittingPayment ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>{language === 'kh' ? 'កំពុងផ្ញើ...' : 'Submitting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{language === 'kh' ? 'ផ្ញើព័ត៌មានទូទាត់' : 'Submit Payment'}</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={() => {
+                  const targetOrder = orderSuccess;
+                  navigate(`/orders?orderId=${targetOrder.OrderID}`, { state: { order: targetOrder } });
+                }}
+                className="w-full py-2.5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white font-bold text-xs rounded-xl shadow-md hover:opacity-95 transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>{language === 'kh' ? 'មើលប្រវត្តនៃការទិញ' : 'View Order History'}</span>
+              </button>
+            )}
             
             <button 
               type="button"
@@ -393,10 +645,11 @@ const Checkout = () => {
  <label className="text-xs font-semibold text-slate-500">លេខទូរស័ព្ទ *</label>
  <input
  type="tel"
+ inputMode="numeric"
  required
  placeholder="វាយបញ្ចូលលេខទូរស័ព្ទ..."
  value={customerPhone}
- onChange={(e) => setCustomerPhone(e.target.value)}
+ onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-amber-500"
  />
  </div>

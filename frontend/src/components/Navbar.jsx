@@ -1040,10 +1040,11 @@ const Navbar = () => {
                   </label>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     required
                     placeholder="e.g. 0961234567"
                     value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
+                    onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-205 bg-slate-50 text-slate-800 focus:outline-none focus:border-amber-500 font-sans"
                   />
                 </div>

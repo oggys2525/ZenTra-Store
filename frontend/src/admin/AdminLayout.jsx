@@ -59,72 +59,78 @@ const AdminLayout = () => {
     };
   }, []);
 
- // WebSocket Live alerts listener
- useEffect(() => {
- const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
- const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'localhost:8000';
- const cleanBase = apiBase.replace('http://', '').replace('https://', '');
- const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
+  // WebSocket Live alerts listener
+  useEffect(() => {
+    let isMounted = true;
+    let ws = null;
 
- let ws;
- try {
- ws = new WebSocket(wsUrl);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const apiBase = import.meta.env.VITE_API_URL || import.meta.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const cleanBase = apiBase.replace(/^https?:\/\//, '');
+    const wsUrl = `${wsProtocol}//${cleanBase}/ws/notifications`;
 
- ws.onmessage = (event) => {
- try {
- const data = JSON.parse(event.data);
- console.log("WebSocket Notification received:", data);
+    try {
+      ws = new WebSocket(wsUrl);
 
- let userMsg = data.message;
- if (data.type === 'new_order') {
- userMsg = `🔔 ការបញ្ជាទិញថ្មី៖ ${data.message || 'មានការបញ្ជាទិញថ្មីពីអតិថិជន!'}`;
- } else if (data.type === 'product_updated') {
- userMsg = `📦 ស្តុកផលិតផល៖ ${data.message}`;
- } else if (data.type === 'product_created') {
- userMsg = `✨ ផលិតផលថ្មី៖ ${data.message}`;
- } else if (data.type === 'product_deleted') {
- userMsg = `🗑️ លុបផលិតផល៖ ${data.message}`;
- } else if (data.type === 'order_updated') {
- userMsg = `📦 ស្ថានភាពបញ្ជាទិញ៖ ${data.message}`;
- }
+      ws.onmessage = (event) => {
+        if (!isMounted) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'connection_established') return;
+          console.log("WebSocket Notification received:", data);
 
- setNotifications(prev => [
- {
- id: Date.now(),
- type: data.type,
- orderId: data.data?.order_id,
- message: userMsg,
- time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
- unread: true
- },
- ...prev
- ]);
- setUnreadCount(prev => prev + 1);
+          let userMsg = data.message;
+          if (data.type === 'new_order') {
+            userMsg = `🔔 ការបញ្ជាទិញថ្មី៖ ${data.message || 'មានការបញ្ជាទិញថ្មីពីអតិថិជន!'}`;
+          } else if (data.type === 'product_updated') {
+            userMsg = `📦 ស្តុកផលិតផល៖ ${data.message}`;
+          } else if (data.type === 'product_created') {
+            userMsg = `✨ ផលិតផលថ្មី៖ ${data.message}`;
+          } else if (data.type === 'product_deleted') {
+            userMsg = `🗑️ លុបផលិតផល៖ ${data.message}`;
+          } else if (data.type === 'order_updated') {
+            userMsg = `📦 ស្ថានភាពបញ្ជាទិញ៖ ${data.message}`;
+          }
 
- // Play notification chime sound safely
- try {
- const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav');
- audio.volume = 0.3;
- audio.play();
- } catch (err) {
- console.warn("Notification audio play failed:", err);
- }
- } catch (err) {
- console.error("Error reading websocket frame:", err);
- }
- };
+          setNotifications(prev => [
+            {
+              id: Date.now(),
+              type: data.type,
+              orderId: data.data?.order_id,
+              message: userMsg,
+              time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+              unread: true
+            },
+            ...prev
+          ]);
+          setUnreadCount(prev => prev + 1);
 
- ws.onclose = () => {
- console.log("WebSocket Connection closed. Retrying soon...");
- };
- } catch (err) {
- console.error("WebSocket setup error:", err);
- }
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav');
+            audio.volume = 0.3;
+            audio.play();
+          } catch (err) {
+            console.warn("Notification audio play failed:", err);
+          }
+        } catch (err) {
+          console.error("Error reading websocket frame:", err);
+        }
+      };
 
- return () => {
- if (ws) ws.close();
- };
- }, []);
+      ws.onclose = () => {
+        if (isMounted) {
+          console.log("WebSocket Connection closed.");
+        }
+      };
+    } catch (err) {
+      console.error("WebSocket setup error:", err);
+    }
+
+    return () => {
+      isMounted = false;
+      if (ws) ws.close();
+    };
+  }, []);
 
  // Close notifications and profile dropdown on outside click
  useEffect(() => {

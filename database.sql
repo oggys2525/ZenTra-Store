@@ -67,6 +67,8 @@ CREATE TABLE dbo.Orders (
     CustomerPhone NVARCHAR(50) NOT NULL,
     CustomerAddress NVARCHAR(MAX) NOT NULL,
     PaymentMethod NVARCHAR(50) DEFAULT 'COD', -- COD, KHQR
+    TransactionID NVARCHAR(100) NULL,
+    ReceiptImage NVARCHAR(500) NULL,
     TotalAmount DECIMAL(18,2) NOT NULL,
     DiscountAmount DECIMAL(18,2) DEFAULT 0.00,
     PromoCode VARCHAR(50) NULL,

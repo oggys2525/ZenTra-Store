@@ -161,6 +161,20 @@ export const orderService = {
     const response = await api.get(url);
     return response.data;
   },
+  uploadReceipt: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/orders/upload-receipt', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  submitPaymentProof: async (orderId, paymentData) => {
+    const response = await api.post(`/api/orders/${orderId}/submit-payment`, paymentData);
+    return response.data;
+  },
 };
 
 export const userService = {

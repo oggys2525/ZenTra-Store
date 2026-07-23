@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ShoppingBag, ChevronRight, Minus, Plus, ShoppingCart, Sparkles } from 'lucide-react';
+import { ShoppingBag, ChevronRight, Minus, Plus, ShoppingCart, Sparkles, Check } from 'lucide-react';
 import { productService, getImageUrl } from '../services/api';
 import { useCart } from '../context/CartContext';
 
@@ -10,6 +10,7 @@ const ProductDetail = () => {
  const { addToCart } = useCart();
  const [product, setProduct] = useState(null);
  const [loading, setLoading] = useState(true);
+ const [added, setAdded] = useState(false);
  
  // Custom states
  const [quantity, setQuantity] = useState(1);
@@ -87,9 +88,8 @@ const ProductDetail = () => {
  const handleAddToCart = () => {
  if (isOutOfStock) return;
  addToCart(product, quantity, selectedSize, selectedColor);
- 
- // Auto redirect to cart for seamless purchasing experience
- navigate('/cart');
+ setAdded(true);
+ setTimeout(() => setAdded(false), 1500);
  };
 
  return (
@@ -299,21 +299,33 @@ const ProductDetail = () => {
 
  </div>
 
- {/* Add to Cart Actions */}
- <div className="border-t border-slate-100 pt-6">
- <button
- onClick={handleAddToCart}
- disabled={isOutOfStock}
- className={`w-full py-4 rounded-2xl flex items-center justify-center space-x-2 text-sm font-bold text-white transition shadow-lg ${
- isOutOfStock
- ? 'bg-slate-300 cursor-not-allowed shadow-none'
- : 'bg-gradient-to-r from-blue-900 to-indigo-950 hover:opacity-90 hover:scale-[1.01]'
- }`}
- >
- <ShoppingCart className="h-4.5 w-4.5" />
- <span>{isOutOfStock ? 'អស់ពីស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</span>
- </button>
- </div>
+  {/* Add to Cart Actions */}
+  <div className="border-t border-slate-100 pt-6">
+    <button
+      type="button"
+      onClick={handleAddToCart}
+      disabled={isOutOfStock}
+      className={`w-full py-4 rounded-2xl flex items-center justify-center space-x-2 text-sm font-bold text-white transition-all duration-300 shadow-lg cursor-pointer ${
+        isOutOfStock
+          ? 'bg-slate-300 cursor-not-allowed shadow-none'
+          : added
+          ? 'bg-emerald-600 scale-[1.01] shadow-emerald-600/25'
+          : 'bg-gradient-to-r from-blue-900 to-indigo-950 hover:opacity-90 hover:scale-[1.01]'
+      }`}
+    >
+      {added ? (
+        <>
+          <Check className="h-5 w-5 animate-bounce" />
+          <span>បានបន្ថែមទៅក្នុងកន្ត្រកជោគជ័យ!</span>
+        </>
+      ) : (
+        <>
+          <ShoppingCart className="h-4.5 w-4.5" />
+          <span>{isOutOfStock ? 'អស់ពីស្តុក' : 'បន្ថែមទៅកន្ត្រក'}</span>
+        </>
+      )}
+    </button>
+  </div>
 
  </div>
  </div>

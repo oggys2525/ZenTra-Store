@@ -57,6 +57,8 @@ class Order(Base):
     CustomerPhone = Column(String(50), nullable=False)
     CustomerAddress = Column(Text, nullable=False)
     PaymentMethod = Column(String(50), default="COD") # COD, KHQR
+    TransactionID = Column(String(100), nullable=True)
+    ReceiptImage = Column(String(500), nullable=True)
     TotalAmount = Column(Numeric(18, 2), nullable=False)
     DiscountAmount = Column(Numeric(18, 2), default=0.00)
     PromoCode = Column(String(50), nullable=True)
